@@ -3,6 +3,8 @@
 precision mediump float;
 
 uniform vec2 u_resolution;
+uniform vec3 u_eye;
+uniform mat4 u_targetTransform;
 
 out vec4 color;
 
@@ -14,17 +16,19 @@ float sphere(vec3 pos) {
 }
 
 void main() {
-    vec2 uv = (gl_FragCoord.xy / u_resolution) * 2.0 - 1.0;
+    // uv is (0, 0) at the center of the screen
+    vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution) / u_resolution.y;
 
-    vec3 camera = vec3(0.0, 0.0, -3.0);
-    vec3 lookAt = normalize(vec3(uv, 1.0));
+    // Looking down the negative Z axis.
+    vec3 camera = vec3(0.0, 0.0, 3.0);
+    vec3 lookAt = (u_targetTransform * vec4(normalize(vec3(uv, -1.0)), 1.0)).xyz;
 
     vec3 marchTo;
     float totalStep = 0.0;
     int i;
     float marchComplexity;
     for (i = 0; i < 32; ++i) {
-        marchTo = camera + lookAt * totalStep;
+        marchTo = u_eye + lookAt * totalStep;
         float nextStep = sphere(marchTo);
         if (nextStep < 0.01) break;
         totalStep += nextStep;

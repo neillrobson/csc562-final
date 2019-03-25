@@ -8,7 +8,9 @@
  */
 interface ShaderProgramContainer {
     program: WebGLProgram,
-    p_u_resolution: WebGLUniformLocation
+    p_u_resolution: WebGLUniformLocation,
+    p_u_eye: WebGLUniformLocation,
+    p_u_targetTransform: WebGLUniformLocation
 }
 
 function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -41,10 +43,14 @@ function setupShaderProgram(gl: WebGL2RenderingContext, vSource: string, fSource
 
     // Uniforms
     let p_u_resolution = gl.getUniformLocation(program, "u_resolution");
+    let p_u_eye = gl.getUniformLocation(program, "u_eye");
+    let p_u_targetTransform = gl.getUniformLocation(program, "u_targetTransform");
 
     return {
         program,
-        p_u_resolution
+        p_u_resolution,
+        p_u_eye,
+        p_u_targetTransform
     };
 }
 

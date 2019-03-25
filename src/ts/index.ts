@@ -5,6 +5,7 @@ import { setupShaderProgram } from './setup';
 import { makeModelData } from './models';
 import { renderModels } from './render';
 import { resize } from './util';
+import { handleKeyDown, resetView } from './keyboard';
 
 var stats = new Stats();
 stats.showPanel(1);
@@ -17,6 +18,8 @@ canvas.style.width = "100vw";
 canvas.style.height = "100vh";
 canvas.style.display = "block";
 
+document.onkeydown = handleKeyDown;
+
 let gl = canvas.getContext("webgl2");
 
 let programContainer = setupShaderProgram(gl, vertexSource, fragmentSource);
@@ -24,6 +27,7 @@ let modelData = makeModelData(gl, programContainer.program);
 
 gl.clearColor(0, 0, 0, 0);
 gl.clear(gl.DEPTH_BUFFER_BIT || gl.COLOR_BUFFER_BIT);
+resetView();
 
 function render() {
     stats.begin();

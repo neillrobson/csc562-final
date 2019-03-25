@@ -14,29 +14,6 @@ function getJSONFile(url: string, descr: string) {
         return JSON.parse(httpReq.response); 
 }
 
-class FrameMeasure {
-    private lastTime = Date.now();
-    private window: Array<number> = [];
-    private _fps = 0;
-
-    constructor(private windowSize: number) { };
-
-    public tick() {
-        let now = Date.now();
-        let thisDelta = (now - this.lastTime) / this.windowSize;
-        this.window.push(thisDelta);
-        if (this.window.length > this.windowSize) {
-            thisDelta -= this.window.shift();
-        }
-        this._fps += thisDelta;
-        this.lastTime = now;
-    }
-
-    get fps() {
-        return this._fps;
-    }
-}
-
 function resize(canvas: HTMLCanvasElement) {
     let displayWidth = canvas.clientWidth;
     let displayHeight = canvas.clientHeight;
@@ -48,4 +25,4 @@ function resize(canvas: HTMLCanvasElement) {
         canvas.height = displayHeight;
 }
 
-export { FrameMeasure, resize };
+export { resize };
