@@ -17,7 +17,7 @@ module.exports = {
       {
         test: /\.(glsl|vs|fs)$/,
         exclude: /node_modules/,
-        use: ['raw-loader']
+        use: ['raw-loader', 'glslify-loader']
       }
     ]
   },

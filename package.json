@@ -11,6 +11,9 @@
   "license": "MIT",
   "devDependencies": {
     "@types/webgl2": "0.0.4",
+    "glsl-colormap": "^1.0.1",
+    "glslify": "^7.0.0",
+    "glslify-loader": "^2.0.0",
     "html-webpack-plugin": "^3.2.0",
     "raw-loader": "^1.0.0",
     "ts-loader": "^5.3.3",

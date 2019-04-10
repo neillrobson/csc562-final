@@ -2,6 +2,8 @@
 
 precision mediump float;
 
+#pragma glslify: blackbody = require('glsl-colormap/blackbody')
+
 const float SCALE = 2.0;
 const int SDF_ITERATIONS = 10;
 const int MARCH_ITERATIONS = 90;
@@ -64,7 +66,7 @@ float sdMandelbulb(in vec3 p, out vec3 escapeZ) {
 	return 0.5 * log(r) * r / dr;
 }
 
-float getMarchComplexity(in vec3 lookAt, out vec3 hitPos, out vec3 color) {
+float getMarchComplexity(in vec3 lookAt, out vec3 hitPos, out vec4 color) {
 	vec3 marchTo;
     vec3 escapeZ;
 	float totalStep = 0.0;
@@ -84,7 +86,7 @@ float getMarchComplexity(in vec3 lookAt, out vec3 hitPos, out vec3 color) {
                 float(i) + 1.0 - log(log(length(escapeZ))) / log(MANDELBULB_POWER)
             ) / float(MARCH_ITERATIONS);
 			hitPos = marchTo;
-            color = vec3(normalizedCount, 1.0, 1.0);
+            color = blackbody(normalizedCount);
 			return 1.0 - normalizedCount;
 		}
 	} else {
@@ -98,7 +100,7 @@ void main() {
 
 	vec3 lookAt = (u_targetTransform * vec4(normalize(vec3(uv, -1.0)), 1.0)).xyz;
 	vec3 hitPos;
-    vec3 rawColor;
+    vec4 rawColor;
 
 	float marchComplexity = getMarchComplexity(lookAt, hitPos, rawColor);
 
@@ -119,7 +121,7 @@ void main() {
 
 	vec3 light = normalize(lightPosition - hitPos);
 	float lambert = max(0.0, dot(normal, light));
-	vec3 diffuse = rawColor * lightDiffuse * lambert;
+	vec3 diffuse = rawColor.xyz * lightDiffuse * lambert;
 
 	vec3 eye = normalize(u_eye - hitPos);
 	vec3 halfVec = normalize(light + eye);
