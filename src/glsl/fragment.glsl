@@ -3,11 +3,25 @@
 precision mediump float;
 
 const float SCALE = 2.0;
-const int TETRA_ITERATIONS = 10;
+const int SDF_ITERATIONS = 10;
 const int MARCH_ITERATIONS = 90;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 5.0;
 const float MANDELBULB_POWER = 8.0;
+const float SHININESS = 6.0;
+
+const vec3 objAmbient = vec3(0.1, 0.1, 0.1);
+const vec3 objDiffuse = vec3(0.6, 0.6, 0.6);
+const vec3 objSpecular = vec3(0.3, 0.3, 0.3);
+const vec3 lightAmbient = vec3(1.0, 1.0, 1.0);
+const vec3 lightDiffuse = vec3(1.0, 1.0, 1.0);
+const vec3 lightSpecular = vec3(1.0, 1.0, 1.0);
+
+const vec3 lightPosition = vec3(0.0, 3.0, 0.0);
+
+const vec3 xEpsilon = vec3(EPSILON, 0.0, 0.0);
+const vec3 yEpsilon = vec3(0.0, EPSILON, 0.0);
+const vec3 zEpsilon = vec3(0.0, 0.0, EPSILON);
 
 uniform vec2 u_resolution;
 uniform vec3 u_eye;
@@ -24,68 +38,11 @@ bool hitSphere(vec3 center, float radius, vec3 lookOrigin, vec3 lookDirection) {
     return discriminant > 0.0;
 }
 
-/**
- * Signed distance function for sphere with radius 1 centered at origin
- */
-float sphere(vec3 pos) {
-    return length(pos) - 1.0;
-}
-
-float sdBox(vec3 p, vec3 b) {
-    vec3 d = abs(p) - b;
-    return length(max(d,0.0))
-        + min(max(d.x,max(d.y,d.z)),0.0);
-}
-
-float sdTetra(vec3 p) {
-    vec3 a1 = vec3(1,1,1);
-    vec3 a2 = vec3(-1,-1,1);
-    vec3 a3 = vec3(1,-1,-1);
-    vec3 a4 = vec3(-1,1,-1);
-    vec3 c;
-    int n = 0;
-    float dist, d;
-    while (n++ < TETRA_ITERATIONS) {
-        c = a1;
-        dist = length(p - a1);
-        d = length(p - a2);
-        if (d < dist) {
-            c = a2;
-            dist = d;
-        }
-        d = length(p - a3);
-        if (d < dist) {
-            c = a3;
-            dist = d;
-        }
-        d = length(p - a4);
-        if (d < dist) {
-            c = a4;
-            dist = d;
-        }
-        p = SCALE * p - c * (SCALE - 1.0);
-    }
-    return length(p) * pow(SCALE, float(-n));
-}
-
-float sdTetraFold(vec3 p) {
-    vec3 a1 = vec3(1, 1, 1);
-    float r;
-    int n = 0;
-    while (n++ < TETRA_ITERATIONS) {
-        if (p.x + p.y < 0.0) p.xy = -p.yx;
-        if (p.x + p.z < 0.0) p.xz = -p.zx;
-        if (p.y + p.z < 0.0) p.yz = -p.zy;
-        p = SCALE * p - a1 * (SCALE - 1.0);
-    }
-    return length(p) * pow(SCALE, float(-n));
-}
-
 float sdMandelbulb(vec3 p) {
     vec3 z = p;
     float dr = 1.0;
     float r = 0.0;
-    for (int i = 0; i < TETRA_ITERATIONS; ++i) {
+    for (int i = 0; i < SDF_ITERATIONS; ++i) {
         r = length(z);
         if (r > BAILOUT_LENGTH) break;
 
@@ -122,7 +79,6 @@ void main() {
     if (hitSphere(vec3(0, 0, 0), 2.0, u_eye, lookAt)) {
         for (i = 0; i < MARCH_ITERATIONS; ++i) {
             marchTo = u_eye + lookAt * totalStep;
-            // float nextStep = sdTetraFold(marchTo);
             float nextStep = sdMandelbulb(marchTo);
             if (nextStep < EPSILON) break;
             totalStep += nextStep;
@@ -136,5 +92,27 @@ void main() {
         marchComplexity = 1.0;
     }
 
-    color = vec4(marchComplexity, marchComplexity, marchComplexity, 1.0);
+    if (marchComplexity == 1.0) {
+        color = vec4(marchComplexity, marchComplexity, marchComplexity, 1.0);
+        return;
+    }
+
+    vec3 normal = normalize(vec3(
+        sdMandelbulb(marchTo+xEpsilon) - sdMandelbulb(marchTo-xEpsilon),
+        sdMandelbulb(marchTo+yEpsilon) - sdMandelbulb(marchTo-yEpsilon),
+        sdMandelbulb(marchTo+zEpsilon) - sdMandelbulb(marchTo-zEpsilon)
+    ));
+
+    vec3 ambient = objAmbient * lightAmbient;
+
+    vec3 light = normalize(lightPosition - marchTo);
+    float lambert = max(0.0, dot(normal, light));
+    vec3 diffuse = objDiffuse * lightDiffuse * lambert;
+
+    vec3 eye = normalize(u_eye - marchTo);
+    vec3 halfVec = normalize(light + eye);
+    float highlight = pow(max(0.0, dot(normal, halfVec)), SHININESS);
+    vec3 specular = objSpecular * lightSpecular * highlight;
+
+    color = vec4(ambient + diffuse + specular, 1.0);
 }
