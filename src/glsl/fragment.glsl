@@ -42,6 +42,48 @@ bool hitSphere(vec3 center, float radius, vec3 lookOrigin, vec3 lookDirection) {
     return discriminant > 0.0;
 }
 
+void nextZTrig(in vec3 cVec, inout vec3 zVec) {
+    float r = length(zVec);
+
+    // Convert to polar coordinates
+    float theta = acos(zVec.z / r);
+    float phi = atan(zVec.y, zVec.x);
+
+    // scale and rotate the point
+    float zr = pow(r, MANDELBULB_POWER);
+    theta = theta * MANDELBULB_POWER;
+    phi = phi * MANDELBULB_POWER;
+    
+    // convert back to cartesian coordinates
+    zVec = zr*vec3(sin(theta)*cos(phi), sin(phi)*sin(theta), cos(theta));
+    zVec += cVec;
+}
+
+/**
+ * ATTENTION: The algorithm outlined below is hard-coded to a Mandelbulb power of 8.
+ */
+void nextZPoly(in vec3 cVec, inout vec3 zVec) {
+    float x = zVec.x;
+    float y = zVec.y;
+    float z = zVec.z;
+    float x2 = x * x;
+    float y2 = y * y;
+    float z2 = z * z;
+    float x4 = x2 * x2;
+    float y4 = y2 * y2;
+    float z4 = z2 * z2;
+
+    float k3 = x2 + z2;
+    // one over the root of k3 to the 7th power
+    float k2 = inversesqrt(k3*k3*k3*k3*k3*k3*k3);
+    float k1 = x4 + y4 + z4 - 6.0*y2*z2 - 6.0*x2*y2 + 2.0*z2*x2;
+    float k4 = x2 - y2 + z2;
+
+    zVec.x = cVec.x + 64.0*x*y*z*(x2-z2)*k4*(x4-6.0*x2*z2+z4)*k1*k2;
+    zVec.y = cVec.y - 16.0*y2*k3*k4*k4 + k1*k1;
+    zVec.z = cVec.z - 8.0*y*k4*(x4*x4 - 28.0*x4*x2*z2 + 70.0*x4*z4 - 28.0*x2*z2*z4 + z4*z4)*k1*k2;
+}
+
 /**
  * Given a starting point, return information about the Mandelbulb's escape
  * behavior at that location.
@@ -57,42 +99,10 @@ float sdMandelbulb(in vec3 p, out vec3 escapeZ) {
     for (int i = 0; i < SDF_ITERATIONS; ++i) {
         r = length(zVec);
         if (r > BAILOUT_LENGTH) break;
+
         dr = pow(r, MANDELBULB_POWER - 1.0) * MANDELBULB_POWER * dr + 1.0;
 
-        // // Convert to polar coordinates
-        // float theta = acos(zVec.z / r);
-        // float phi = atan(zVec.y, zVec.x);
-
-        // // scale and rotate the point
-        // float zr = pow(r, MANDELBULB_POWER);
-        // theta = theta * MANDELBULB_POWER;
-        // phi = phi * MANDELBULB_POWER;
-        
-        // // convert back to cartesian coordinates
-        // zVec = zr*vec3(sin(theta)*cos(phi), sin(phi)*sin(theta), cos(theta));
-        // zVec += p;
-
-        // ##################################
-
-        float x = zVec.x;
-        float y = zVec.y;
-        float z = zVec.z;
-        float x2 = x * x;
-        float y2 = y * y;
-        float z2 = z * z;
-        float x4 = x2 * x2;
-        float y4 = y2 * y2;
-        float z4 = z2 * z2;
-
-        float k3 = x2 + z2;
-        // one over the root of k3 to the 7th power
-        float k2 = inversesqrt(k3*k3*k3*k3*k3*k3*k3);
-        float k1 = x4 + y4 + z4 - 6.0*y2*z2 - 6.0*x2*y2 + 2.0*z2*x2;
-        float k4 = x2 - y2 + z2;
-
-        zVec.x = p.x + 64.0*x*y*z*(x2-z2)*k4*(x4-6.0*x2*z2+z4)*k1*k2;
-        zVec.y = p.y - 16.0*y2*k3*k4*k4 + k1*k1;
-        zVec.z = p.z - 8.0*y*k4*(x4*x4 - 28.0*x4*x2*z2 + 70.0*x4*z4 - 28.0*x2*z2*z4 + z4*z4)*k1*k2;
+        nextZPoly(p, zVec);
     }
     escapeZ = zVec;
     return 0.5 * log(r) * r / dr;
