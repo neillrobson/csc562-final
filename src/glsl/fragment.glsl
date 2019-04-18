@@ -7,10 +7,12 @@ precision mediump float;
 const float SCALE = 2.0;
 const int SDF_ITERATIONS = 10;
 const int MARCH_ITERATIONS = 90;
+const int RAY_DEPTH = 3;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 5.0;
 const float MANDELBULB_POWER = 8.0;
 const float SHININESS = 6.0;
+const float ALBEDO = 0.5;
 
 const vec3 objAmbient = vec3(0.1, 0.1, 0.1);
 const vec3 objDiffuse = vec3(0.6, 0.6, 0.6);
@@ -144,23 +146,51 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
     return false;
 }
 
-void main() {
-    // uv is (0, 0) at the center of the screen
-    vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution) / u_resolution.y;
+/**
+ * Get a random direction in a hemisphere centered on the given dir.
+ */
+vec3 getSample(vec3 dir) {
+    return dir;
+}
 
-    vec3 lookAt = (u_targetTransform * vec4(normalize(vec3(uv, -1.0)), 1.0)).xyz;
+/**
+ * Get the color coming from a skybox at an infinite distance from the viewer.
+ */
+vec3 getBackground(vec3 dir) {
+    return vec3(1.0);
+}
+
+vec3 getColorGI(vec3 from, vec3 dir) {
+    vec3 hit = vec3(0.0);
+    vec3 hitNormal = vec3(0.0);
+    float complexity;
+
+    vec3 luminance = vec3(1.0);
+
+    for (int i = 0; i < RAY_DEPTH; ++i) {
+        if (trace(from, dir, hit, hitNormal, complexity)) {
+            dir = getSample(hitNormal);
+            luminance *= 2.0 * ALBEDO * dot(dir, hitNormal);
+            from = hit + hitNormal * EPSILON * 2.0;
+        } else {
+            return luminance * getBackground(dir);
+        }
+    }
+    return vec3(0.0);
+}
+
+vec3 getColorBlinnPhong(vec3 from, vec3 dir) {
     vec3 hitPos;
     vec3 hitNormal;
     vec4 rawColor;
     float marchComplexity;
 
-    bool didHit = trace(u_eye, lookAt, hitPos, hitNormal, marchComplexity);
+    bool didHit = trace(from, dir, hitPos, hitNormal, marchComplexity);
     rawColor = blackbody(marchComplexity);
 
     // Early return if no hit
     if (!didHit) {
-        color = vec4(1.0, 1.0, 1.0, 1.0);
-        return;
+        return vec3(1.0);
     }
 
     vec3 ambient = objAmbient * lightAmbient;
@@ -169,10 +199,18 @@ void main() {
     float lambert = max(0.0, dot(hitNormal, light));
     vec3 diffuse = rawColor.xyz * lightDiffuse * lambert;
 
-    vec3 eye = normalize(u_eye - hitPos);
+    vec3 eye = normalize(from - hitPos);
     vec3 halfVec = normalize(light + eye);
     float highlight = pow(max(0.0, dot(hitNormal, halfVec)), SHININESS);
     vec3 specular = objSpecular * lightSpecular * highlight;
 
-    color = vec4(ambient + diffuse + specular, 1.0);
+    return ambient + diffuse + specular;
+}
+
+void main() {
+    // uv is (0, 0) at the center of the screen
+    vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution) / u_resolution.y;
+    vec3 lookAt = (u_targetTransform * vec4(normalize(vec3(uv, -1.0)), 1.0)).xyz;
+
+    color = vec4(getColorGI(u_eye, lookAt), 1.0);
 }
