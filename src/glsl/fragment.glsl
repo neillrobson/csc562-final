@@ -5,7 +5,6 @@ precision mediump float;
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
 #pragma glslify: nextZPoly = require('./mandel-sequencers/poly.glsl');
 
-const float SCALE = 2.0;
 const int SDF_ITERATIONS = 10;
 const int MARCH_ITERATIONS = 90;
 const float EPSILON = 0.001;
