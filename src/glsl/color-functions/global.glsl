@@ -1,5 +1,7 @@
+#pragma glslify: yignbu = require('glsl-colormap/yignbu')
+
 const float ALBEDO = 0.5;
-const int RAY_DEPTH = 3;
+const int RAY_DEPTH = 5;
 const float PI = 3.14;
 
 /**
@@ -40,10 +42,18 @@ vec3 getSample(vec3 dir) {
 }
 
 /**
+ * Get a weighted random direction in a hemisphere centered on the given dir.
+ * More emphasis will be given to directions close to the dir.
+ */
+vec3 getCosineWeightedSample(vec3 dir) {
+    return getSampleBiased(dir, 1.0);
+}
+
+/**
  * Get the color coming from a skybox at an infinite distance from the viewer.
  */
 vec3 getBackground(vec3 dir) {
-    return vec3(1.0);
+    return yignbu(acos(-normalize(dir).y) / PI).xyz;
 }
 
 vec3 getColorGI(vec3 from, vec3 dir) {
@@ -55,8 +65,10 @@ vec3 getColorGI(vec3 from, vec3 dir) {
 
     for (int i = 0; i < RAY_DEPTH; ++i) {
         if (trace(from, dir, hit, hitNormal, complexity)) {
-            dir = getSample(hitNormal);
-            luminance *= 2.0 * ALBEDO * dot(dir, hitNormal);
+            // dir = getSample(hitNormal);
+            // luminance *= 2.0 * ALBEDO * dot(dir, hitNormal);
+            dir = getCosineWeightedSample(hitNormal);
+            luminance *= ALBEDO;
             from = hit + hitNormal * EPSILON * 2.0;
         } else {
             return luminance * getBackground(dir);

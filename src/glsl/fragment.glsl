@@ -5,10 +5,10 @@ precision mediump float;
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
 #pragma glslify: nextZPoly = require('./mandel-sequencers/poly.glsl');
 
-const int SDF_ITERATIONS = 10;
-const int MARCH_ITERATIONS = 90;
+const int SDF_ITERATIONS = 5;
+const int MARCH_ITERATIONS = 50;
 const float EPSILON = 0.001;
-const float BAILOUT_LENGTH = 5.0;
+const float BAILOUT_LENGTH = 3.0;
 const float MANDELBULB_POWER = 8.0;
 
 const vec3 xEpsilon = vec3(EPSILON, 0.0, 0.0);
@@ -81,7 +81,7 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
     vec3 escapeZ;
     float totalStep = 0.0;
     int i;
-    if (hitSphere(vec3(0, 0, 0), 2.0, from, dir)) {
+    if (hitSphere(vec3(0, 0, 0), 1.2, from, dir)) {
         for (i = 0; i < MARCH_ITERATIONS; ++i) {
             marchTo = from + dir * totalStep;
             float nextStep = sdMandelbulb(marchTo, escapeZ);
