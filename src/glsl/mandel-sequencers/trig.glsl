@@ -2,8 +2,8 @@ void nextZTrig(in vec3 cVec, in float power, inout vec3 zVec) {
     float r = length(zVec);
 
     // Convert to polar coordinates
-    float theta = acos(zVec.z / r);
-    float phi = atan(zVec.y, zVec.x);
+    float theta = acos(zVec.y / r);
+    float phi = atan(zVec.x, zVec.z);
 
     // scale and rotate the point
     float zr = pow(r, power);
@@ -11,7 +11,7 @@ void nextZTrig(in vec3 cVec, in float power, inout vec3 zVec) {
     phi = phi * power;
     
     // convert back to cartesian coordinates
-    zVec = zr*vec3(sin(theta)*cos(phi), sin(phi)*sin(theta), cos(theta));
+    zVec = zr*vec3(sin(theta)*sin(phi), cos(theta), cos(phi)*sin(theta));
     zVec += cVec;
 }
 
