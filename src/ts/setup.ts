@@ -10,7 +10,11 @@ interface ShaderProgramContainer {
     program: WebGLProgram,
     p_u_resolution: WebGLUniformLocation,
     p_u_eye: WebGLUniformLocation,
-    p_u_targetTransform: WebGLUniformLocation
+    p_u_targetTransform: WebGLUniformLocation,
+
+    // Feature toggles
+    p_u_zFunctionType: WebGLUniformLocation,
+    p_u_shadingType: WebGLUniformLocation,
 }
 
 function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -46,11 +50,17 @@ function setupShaderProgram(gl: WebGL2RenderingContext, vSource: string, fSource
     let p_u_eye = gl.getUniformLocation(program, "u_eye");
     let p_u_targetTransform = gl.getUniformLocation(program, "u_targetTransform");
 
+    // Feature toggles
+    let p_u_zFunctionType = gl.getUniformLocation(program, "u_zFunctionType");
+    let p_u_shadingType = gl.getUniformLocation(program, "u_shadingType");
+
     return {
         program,
         p_u_resolution,
         p_u_eye,
-        p_u_targetTransform
+        p_u_targetTransform,
+        p_u_zFunctionType,
+        p_u_shadingType
     };
 }
 

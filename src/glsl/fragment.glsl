@@ -19,6 +19,10 @@ uniform vec2 u_resolution;
 uniform vec3 u_eye;
 uniform mat4 u_targetTransform;
 
+// Feature toggles
+uniform int u_zFunctionType;
+uniform int u_shadingType;
+
 out vec4 color;
 
 bool hitSphere(vec3 center, float radius, vec3 lookOrigin, vec3 lookDirection) {
@@ -48,7 +52,11 @@ float sdMandelbulb(in vec3 p, out vec3 escapeZ) {
 
         dr = pow(r, MANDELBULB_POWER - 1.0) * MANDELBULB_POWER * dr + 1.0;
 
-        nextZPoly(p, zVec);
+        if (u_zFunctionType == 0) {
+            nextZPoly(p, zVec);
+        } else {
+            nextZTrig(p, MANDELBULB_POWER, zVec);
+        }
     }
     escapeZ = zVec;
     return 0.5 * log(r) * r / dr;
@@ -110,5 +118,9 @@ void main() {
     vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution) / u_resolution.y;
     vec3 lookAt = (u_targetTransform * vec4(normalize(vec3(uv, -1.0)), 1.0)).xyz;
 
-    color = vec4(getColorGI(u_eye, lookAt), 1.0);
+    if (u_shadingType == 0) {
+        color = vec4(getColorBlinnPhong(u_eye, lookAt), 1.0);
+    } else {
+        color = vec4(getColorGI(u_eye, lookAt), 1.0);
+    }
 }

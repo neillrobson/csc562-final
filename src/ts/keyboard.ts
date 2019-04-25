@@ -5,6 +5,10 @@ var Eye = vec3.create();
 var Center = vec3.create();
 var Up = vec3.create();
 
+// Feature toggles
+var zFunctionType = 0;
+var shadingType = 0;
+
 function handleKeyDown(event: KeyboardEvent) {
     // set up needed view params
     let lookAt = vec3.create(),
@@ -61,6 +65,14 @@ function handleKeyDown(event: KeyboardEvent) {
         case "Escape": // reset view to default
             resetView();
             break;
+
+        // Feature toggles
+        case "KeyZ":
+            zFunctionType = 1 - zFunctionType;
+            break;
+        case "KeyX":
+            shadingType = 1 - shadingType;
+            break;
     } // end switch
 } // end handleKeyDown
 
@@ -75,5 +87,7 @@ export {
     Center,
     Up,
     handleKeyDown,
-    resetView
+    resetView,
+    zFunctionType,
+    shadingType
 };

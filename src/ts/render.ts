@@ -1,7 +1,7 @@
 import { ShaderProgramContainer } from "./setup";
 import { ModelData } from "./models";
 import { mat4, vec3 } from "gl-matrix";
-import { Center, Eye, Up } from "./keyboard";
+import { Center, Eye, Up, zFunctionType, shadingType } from "./keyboard";
 
 /**
  * Calls the shaders to draw the given shapes on the canvas.
@@ -26,6 +26,10 @@ function renderModels(gl: WebGL2RenderingContext, programContainer: ShaderProgra
     gl.uniform2f(programContainer.p_u_resolution, xywh[2], xywh[3]);
     gl.uniform3fv(programContainer.p_u_eye, Eye);
     gl.uniformMatrix4fv(programContainer.p_u_targetTransform, false, targetTransform);
+
+    // Feature toggles
+    gl.uniform1i(programContainer.p_u_zFunctionType, zFunctionType);
+    gl.uniform1i(programContainer.p_u_shadingType, shadingType);
 
     gl.bindVertexArray(modelData.vao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, modelData.numVertices);
