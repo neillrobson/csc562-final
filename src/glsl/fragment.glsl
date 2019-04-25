@@ -5,8 +5,8 @@ precision mediump float;
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
 #pragma glslify: nextZPoly = require('./mandel-sequencers/poly.glsl');
 
-const int SDF_ITERATIONS = 5;
-const int MARCH_ITERATIONS = 50;
+const int SDF_ITERATIONS = 10;
+const int MARCH_ITERATIONS = 100;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 3.0;
 const float MANDELBULB_POWER = 8.0;

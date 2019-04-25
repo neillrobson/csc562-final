@@ -1,8 +1,10 @@
 #pragma glslify: yignbu = require('glsl-colormap/yignbu')
 
-const float ALBEDO = 0.5;
-const int RAY_DEPTH = 5;
+const float ALBEDO = 0.6;
+const int RAY_DEPTH = 10;
 const float PI = 3.14;
+
+const vec3 sunDirection = vec3(1.0, 0.0, 0.0);
 
 /**
  * Returns two random numbers between zero and one (exclusive).
@@ -49,16 +51,30 @@ vec3 getCosineWeightedSample(vec3 dir) {
     return getSampleBiased(dir, 1.0);
 }
 
+vec3 getConeSample(vec3 dir, float extent) {
+    dir = normalize(dir);
+    vec3 o1 = normalize(ortho(dir));
+    vec3 o2 = normalize(cross(dir, o1));
+    vec2 r = randVec2();
+    r.x *= 2.0 * PI;
+    r.y = 1.0 - r.y * extent;
+    float oneminus = sqrt(1.0 - r.y * r.y);
+    return cos(r.x) * oneminus * o1 + sin(r.x) * oneminus * o2 + r.y * dir;
+}
+
 /**
  * Get the color coming from a skybox at an infinite distance from the viewer.
  */
 vec3 getBackground(vec3 dir) {
-    return yignbu(acos(-normalize(dir).y) / PI).xyz;
+    // return yignbu(acos(-normalize(dir).y) / PI).xyz;
+    return vec3(1.0);
 }
 
 vec3 getColorGI(vec3 from, vec3 dir) {
     vec3 hit = vec3(0.0);
+    vec3 direct = vec3(0.0);
     vec3 hitNormal = vec3(0.0);
+    vec3 dummy = vec3(0.0);
     float complexity;
 
     vec3 luminance = vec3(1.0);
@@ -70,8 +86,16 @@ vec3 getColorGI(vec3 from, vec3 dir) {
             dir = getCosineWeightedSample(hitNormal);
             luminance *= ALBEDO;
             from = hit + hitNormal * EPSILON * 2.0;
+
+            // Direct lighting
+            vec3 sunSampleDir = getConeSample(sunDirection, 2E-5);
+            float sunLight = dot(hitNormal, sunSampleDir);
+            if (sunLight > 0.0 && !trace(from, sunSampleDir, dummy, dummy, complexity)) {
+                direct += luminance * sunLight * 2E-5;
+            }
         } else {
-            return luminance * getBackground(dir);
+            // return luminance * getBackground(dir);
+            return direct + luminance * getBackground(dir);
         }
     }
     return vec3(0.0);
