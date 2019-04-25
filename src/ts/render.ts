@@ -28,8 +28,8 @@ function renderModels(gl: WebGL2RenderingContext, programContainer: ShaderProgra
     gl.uniformMatrix4fv(programContainer.p_u_targetTransform, false, targetTransform);
 
     // Feature toggles
-    gl.uniform1i(programContainer.p_u_zFunctionType, zFunctionType);
-    gl.uniform1i(programContainer.p_u_shadingType, shadingType);
+    gl.uniform1i(programContainer.featureToggles["u_zFunctionType"], zFunctionType);
+    gl.uniform1i(programContainer.featureToggles["u_shadingType"], shadingType);
 
     gl.bindVertexArray(modelData.vao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, modelData.numVertices);

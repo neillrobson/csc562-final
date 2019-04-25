@@ -22,7 +22,12 @@ document.onkeydown = handleKeyDown;
 
 let gl = canvas.getContext("webgl2");
 
-let programContainer = setupShaderProgram(gl, vertexSource, fragmentSource);
+let featureToggles = [
+    "u_zFunctionType",
+    "u_shadingType"
+];
+
+let programContainer = setupShaderProgram(gl, vertexSource, fragmentSource, featureToggles);
 let modelData = makeModelData(gl, programContainer.program);
 
 gl.clearColor(0, 0, 0, 0);

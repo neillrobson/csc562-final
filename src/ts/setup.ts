@@ -11,10 +11,7 @@ interface ShaderProgramContainer {
     p_u_resolution: WebGLUniformLocation,
     p_u_eye: WebGLUniformLocation,
     p_u_targetTransform: WebGLUniformLocation,
-
-    // Feature toggles
-    p_u_zFunctionType: WebGLUniformLocation,
-    p_u_shadingType: WebGLUniformLocation,
+    featureToggles: any
 }
 
 function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -40,7 +37,7 @@ function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fr
     gl.deleteProgram(program);
 }
 
-function setupShaderProgram(gl: WebGL2RenderingContext, vSource: string, fSource: string): ShaderProgramContainer {
+function setupShaderProgram(gl: WebGL2RenderingContext, vSource: string, fSource: string, featureToggleNames: string[]): ShaderProgramContainer {
     let vertexShader = createShader(gl, gl.VERTEX_SHADER, vSource);
     let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fSource);
     let program = createProgram(gl, vertexShader, fragmentShader);
@@ -51,16 +48,17 @@ function setupShaderProgram(gl: WebGL2RenderingContext, vSource: string, fSource
     let p_u_targetTransform = gl.getUniformLocation(program, "u_targetTransform");
 
     // Feature toggles
-    let p_u_zFunctionType = gl.getUniformLocation(program, "u_zFunctionType");
-    let p_u_shadingType = gl.getUniformLocation(program, "u_shadingType");
+    let featureToggles: any = {};
+    for (const fName of featureToggleNames) {
+        featureToggles[fName] = gl.getUniformLocation(program, fName);
+    }
 
     return {
         program,
         p_u_resolution,
         p_u_eye,
         p_u_targetTransform,
-        p_u_zFunctionType,
-        p_u_shadingType
+        featureToggles
     };
 }
 
