@@ -1,7 +1,8 @@
 import { ShaderProgramContainer } from "./setup";
 import { ModelData } from "./models";
 import { mat4, vec3 } from "gl-matrix";
-import { Center, Eye, Up, zFunctionType, shadingType } from "./keyboard";
+import { Center, Eye, Up } from "./keyboard";
+import { featureToggles } from "./globals";
 
 /**
  * Calls the shaders to draw the given shapes on the canvas.
@@ -28,8 +29,8 @@ function renderModels(gl: WebGL2RenderingContext, programContainer: ShaderProgra
     gl.uniformMatrix4fv(programContainer.p_u_targetTransform, false, targetTransform);
 
     // Feature toggles
-    gl.uniform1i(programContainer.featureToggles["u_zFunctionType"], zFunctionType);
-    gl.uniform1i(programContainer.featureToggles["u_shadingType"], shadingType);
+    gl.uniform1i(programContainer.featureToggles["u_zFunctionType"], featureToggles.zFunctionType);
+    gl.uniform1i(programContainer.featureToggles["u_shadingType"], featureToggles.shadingType);
 
     gl.bindVertexArray(modelData.vao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, modelData.numVertices);

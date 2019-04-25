@@ -1,13 +1,9 @@
 import { vec3 } from "gl-matrix";
-import { DEFAULT_EYE, DEFAULT_CENTER, DEFAULT_UP, viewDelta } from "./globals";
+import { DEFAULT_EYE, DEFAULT_CENTER, DEFAULT_UP, viewDelta, featureToggles } from "./globals";
 
 var Eye = vec3.create();
 var Center = vec3.create();
 var Up = vec3.create();
-
-// Feature toggles
-var zFunctionType = 0;
-var shadingType = 0;
 
 function handleKeyDown(event: KeyboardEvent) {
     // set up needed view params
@@ -65,14 +61,6 @@ function handleKeyDown(event: KeyboardEvent) {
         case "Escape": // reset view to default
             resetView();
             break;
-
-        // Feature toggles
-        case "KeyZ":
-            zFunctionType = 1 - zFunctionType;
-            break;
-        case "KeyX":
-            shadingType = 1 - shadingType;
-            break;
     } // end switch
 } // end handleKeyDown
 
@@ -88,6 +76,4 @@ export {
     Up,
     handleKeyDown,
     resetView,
-    zFunctionType,
-    shadingType
 };

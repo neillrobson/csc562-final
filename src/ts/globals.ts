@@ -5,9 +5,15 @@ const DEFAULT_CENTER = vec3.fromValues(0, 0, -1);
 const DEFAULT_UP = vec3.fromValues(0, 1, 0);
 const viewDelta = 0.01;
 
+const featureToggles = {
+    zFunctionType: 0,
+    shadingType: 0
+};
+
 export {
     DEFAULT_EYE,
     DEFAULT_CENTER,
     DEFAULT_UP,
-    viewDelta
+    viewDelta,
+    featureToggles
 }
