@@ -31,6 +31,7 @@ vec3 getSampleBiased(in vec3 dir, in float power) {
     vec3 o2 = normalize(cross(nDir, o1));
     vec2 r = randVec2();
     r.x *= 2.0 * PI;
+    // r.y is a number between zero and one. We need to take a fractional power of it (1/2, 1/4, etc) in order to bring its value closer to 1.
     r.y = pow(r.y, 1.0 / (power + 1.0));
     float oneminus = sqrt(1.0 - r.y * r.y);
     return cos(r.x) * oneminus * o1 + sin(r.x) * oneminus * o2 + r.y * nDir;
@@ -48,7 +49,7 @@ vec3 getSample(vec3 dir) {
  * More emphasis will be given to directions close to the dir.
  */
 vec3 getCosineWeightedSample(vec3 dir) {
-    return getSampleBiased(dir, 1.0);
+    return getSampleBiased(dir, u_cosineWeight);
 }
 
 vec3 getConeSample(vec3 dir, float extent) {
@@ -84,20 +85,24 @@ vec3 getColorGI(vec3 from, vec3 dir) {
 
     for (int i = 0; i < RAY_DEPTH; ++i) {
         if (trace(from, dir, hit, hitNormal, complexity)) {
-            // dir = getSample(hitNormal);
-            // luminance *= 2.0 * ALBEDO * dot(dir, hitNormal);
-            dir = getCosineWeightedSample(hitNormal);
-            luminance *= ALBEDO;
+            if (u_useCosineBias == 0) {
+                dir = getSample(hitNormal);
+                luminance *= 2.0 * ALBEDO * dot(dir, hitNormal);
+            } else {
+                dir = getCosineWeightedSample(hitNormal);
+                luminance *= ALBEDO;
+            }
+
             from = hit + hitNormal * EPSILON * 2.0;
 
-            // Direct lighting
-            vec3 sunSampleDir = getConeSample(sunDirection, 2E-5);
-            float sunLight = dot(hitNormal, sunSampleDir);
-            if (sunLight > 0.0 && !trace(from, sunSampleDir, dummy, dummy, complexity)) {
-                direct += luminance * sunLight * 2E-5;
+            if (u_useDirectLighting != 0) {
+                vec3 sunSampleDir = getConeSample(sunDirection, 1E-5);
+                float sunLight = dot(hitNormal, sunSampleDir);
+                if (sunLight > 0.0 && !trace(from, sunSampleDir, dummy, dummy, complexity)) {
+                    direct += luminance * sunLight * 1E-5;
+                }
             }
         } else {
-            // return luminance * getBackground(dir);
             return direct + luminance * getBackground(dir);
         }
     }

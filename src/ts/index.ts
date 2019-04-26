@@ -19,6 +19,9 @@ gui.add(featureToggles, "shadingType", { BlinnPhong: 0, Global: 1 });
 gui.add(featureToggles, "zFunctionIterations", 1, 16);
 gui.add(featureToggles, "rayMarchIterations", 1, 128);
 gui.add(featureToggles, "backgroundType", { White: 0, Colored: 1 });
+gui.add(featureToggles, "cosineWeight", 1, 10, 0.01);
+gui.add(featureToggles, "useCosineBias", { False: 0, True: 1 });
+gui.add(featureToggles, "useDirectLighting", { False: 0, True: 1 });
 
 let canvas = document.createElement("canvas");
 document.body.appendChild(canvas);

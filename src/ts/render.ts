@@ -34,6 +34,9 @@ function renderModels(gl: WebGL2RenderingContext, programContainer: ShaderProgra
     gl.uniform1i(programContainer.featureToggles["u_zFunctionIterations"], featureToggles.zFunctionIterations);
     gl.uniform1i(programContainer.featureToggles["u_rayMarchIterations"], featureToggles.rayMarchIterations);
     gl.uniform1i(programContainer.featureToggles["u_backgroundType"], featureToggles.backgroundType);
+    gl.uniform1f(programContainer.featureToggles["u_cosineWeight"], featureToggles.cosineWeight);
+    gl.uniform1i(programContainer.featureToggles["u_useCosineBias"], featureToggles.useCosineBias);
+    gl.uniform1i(programContainer.featureToggles["u_useDirectLighting"], featureToggles.useDirectLighting);
 
     gl.bindVertexArray(modelData.vao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, modelData.numVertices);

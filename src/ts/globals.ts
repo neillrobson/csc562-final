@@ -11,6 +11,9 @@ const featureToggles = {
     zFunctionIterations: 10,
     rayMarchIterations: 100,
     backgroundType: 1,
+    cosineWeight: 1,
+    useCosineBias: 0,
+    useDirectLighting: 0
 };
 
 export {
