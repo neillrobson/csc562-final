@@ -24,6 +24,7 @@ uniform int u_zFunctionType;
 uniform int u_shadingType;
 uniform int u_zFunctionIterations;
 uniform int u_rayMarchIterations;
+uniform int u_backgroundType;
 
 out vec4 color;
 
@@ -115,7 +116,7 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
 }
 
 #pragma glslify: getColorBlinnPhong = require('./color-functions/blinn-phong.glsl', trace=trace);
-#pragma glslify: getColorGI = require('./color-functions/global.glsl', trace=trace, EPSILON=EPSILON);
+#pragma glslify: getColorGI = require('./color-functions/global.glsl', trace=trace, EPSILON=EPSILON, u_backgroundType=u_backgroundType);
 
 void main() {
     // uv is (0, 0) at the center of the screen

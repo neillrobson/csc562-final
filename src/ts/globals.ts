@@ -10,6 +10,7 @@ const featureToggles = {
     shadingType: 0,
     zFunctionIterations: 10,
     rayMarchIterations: 100,
+    backgroundType: 1,
 };
 
 export {

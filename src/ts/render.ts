@@ -33,6 +33,7 @@ function renderModels(gl: WebGL2RenderingContext, programContainer: ShaderProgra
     gl.uniform1i(programContainer.featureToggles["u_shadingType"], featureToggles.shadingType);
     gl.uniform1i(programContainer.featureToggles["u_zFunctionIterations"], featureToggles.zFunctionIterations);
     gl.uniform1i(programContainer.featureToggles["u_rayMarchIterations"], featureToggles.rayMarchIterations);
+    gl.uniform1i(programContainer.featureToggles["u_backgroundType"], featureToggles.backgroundType);
 
     gl.bindVertexArray(modelData.vao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, modelData.numVertices);
