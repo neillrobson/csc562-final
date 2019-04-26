@@ -16,6 +16,8 @@ document.body.appendChild(stats.dom);
 const gui = new dat.GUI();
 gui.add(featureToggles, "zFunctionType", { Trig: 1, Polynomial: 0 });
 gui.add(featureToggles, "shadingType", { BlinnPhong: 0, Global: 1 });
+gui.add(featureToggles, "zFunctionIterations", 1, 16);
+gui.add(featureToggles, "rayMarchIterations", 1, 128);
 
 let canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
@@ -28,11 +30,7 @@ document.onkeydown = handleKeyDown;
 
 let gl = canvas.getContext("webgl2");
 
-let featureToggleNames = [
-    "u_zFunctionType",
-    "u_shadingType"
-];
-
+let featureToggleNames = Object.keys(featureToggles).map(name => "u_" + name);
 let programContainer = setupShaderProgram(gl, vertexSource, fragmentSource, featureToggleNames);
 let modelData = makeModelData(gl, programContainer.program);
 

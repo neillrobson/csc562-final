@@ -5,8 +5,8 @@ precision mediump float;
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
 #pragma glslify: nextZPoly = require('./mandel-sequencers/poly.glsl');
 
-const int SDF_ITERATIONS = 10;
-const int MARCH_ITERATIONS = 100;
+const int MAX_Z_FUNCTION_ITERATIONS = 16;
+const int MAX_RAY_MARCH_ITERATIONS = 128;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 3.0;
 const float MANDELBULB_POWER = 8.0;
@@ -22,6 +22,8 @@ uniform mat4 u_targetTransform;
 // Feature toggles
 uniform int u_zFunctionType;
 uniform int u_shadingType;
+uniform int u_zFunctionIterations;
+uniform int u_rayMarchIterations;
 
 out vec4 color;
 
@@ -46,7 +48,8 @@ float sdMandelbulb(in vec3 p, out vec3 escapeZ) {
     vec3 zVec = p;
     float dr = 1.0;
     float r = 0.0;
-    for (int i = 0; i < SDF_ITERATIONS; ++i) {
+    for (int i = 0; i < MAX_Z_FUNCTION_ITERATIONS; ++i) {
+        if (i >= u_zFunctionIterations) break;
         r = length(zVec);
         if (r > BAILOUT_LENGTH) break;
 
@@ -90,20 +93,21 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
     float totalStep = 0.0;
     int i;
     if (hitSphere(vec3(0, 0, 0), 1.2, from, dir)) {
-        for (i = 0; i < MARCH_ITERATIONS; ++i) {
+        for (i = 0; i < MAX_RAY_MARCH_ITERATIONS; ++i) {
+            if (i >= u_rayMarchIterations) break;
             marchTo = from + dir * totalStep;
             float nextStep = sdMandelbulb(marchTo, escapeZ);
             if (nextStep < EPSILON) break;
             totalStep += nextStep;
         }
-        if (i == MARCH_ITERATIONS) {
+        if (i >= u_rayMarchIterations) {
             return false;
         } else {
             hitPos = marchTo;
             hitNormal = getNormal(marchTo);
             complexity = (
                 float(i) + 1.0 - log(log(length(escapeZ))) / log(MANDELBULB_POWER)
-            ) / float(MARCH_ITERATIONS);
+            ) / float(u_rayMarchIterations);
             return true;
         }
     }

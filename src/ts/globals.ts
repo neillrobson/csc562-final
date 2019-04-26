@@ -7,7 +7,9 @@ const viewDelta = 0.01;
 
 const featureToggles = {
     zFunctionType: 0,
-    shadingType: 0
+    shadingType: 0,
+    zFunctionIterations: 10,
+    rayMarchIterations: 100,
 };
 
 export {
