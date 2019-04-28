@@ -1,5 +1,3 @@
-#version 300 es
-
 precision mediump float;
 
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
@@ -15,7 +13,8 @@ const vec3 xEpsilon = vec3(EPSILON, 0.0, 0.0);
 const vec3 yEpsilon = vec3(0.0, EPSILON, 0.0);
 const vec3 zEpsilon = vec3(0.0, 0.0, EPSILON);
 
-uniform vec2 u_resolution;
+uniform int u_viewportWidth;
+uniform int u_viewportHeight;
 uniform vec3 u_eye;
 uniform mat4 u_targetTransform;
 
@@ -28,8 +27,6 @@ uniform int u_backgroundType;
 uniform float u_cosineWeight;
 uniform int u_useCosineBias;
 uniform int u_useDirectLighting;
-
-out vec4 color;
 
 bool hitSphere(vec3 center, float radius, vec3 lookOrigin, vec3 lookDirection) {
     vec3 oc = lookOrigin - center;
@@ -95,22 +92,23 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
     vec3 marchTo;
     vec3 escapeZ;
     float totalStep = 0.0;
-    int i;
+    int itr;
     if (hitSphere(vec3(0, 0, 0), 1.2, from, dir)) {
-        for (i = 0; i < MAX_RAY_MARCH_ITERATIONS; ++i) {
+        for (int i = 0; i < MAX_RAY_MARCH_ITERATIONS; ++i) {
+            itr = i;
             if (i >= u_rayMarchIterations) break;
             marchTo = from + dir * totalStep;
             float nextStep = sdMandelbulb(marchTo, escapeZ);
             if (nextStep < EPSILON) break;
             totalStep += nextStep;
         }
-        if (i >= u_rayMarchIterations) {
+        if (itr >= u_rayMarchIterations) {
             return false;
         } else {
             hitPos = marchTo;
             hitNormal = getNormal(marchTo);
             complexity = (
-                float(i) + 1.0 - log(log(length(escapeZ))) / log(MANDELBULB_POWER)
+                float(itr) + 1.0 - log(log(length(escapeZ))) / log(MANDELBULB_POWER)
             ) / float(u_rayMarchIterations);
             return true;
         }
@@ -123,12 +121,12 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
 
 void main() {
     // uv is (0, 0) at the center of the screen
-    vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution) / u_resolution.y;
+    vec2 uv = (2.0 * gl_FragCoord.xy - vec2(u_viewportWidth, u_viewportHeight)) / float(u_viewportHeight);
     vec3 lookAt = (u_targetTransform * vec4(normalize(vec3(uv, -1.0)), 1.0)).xyz;
 
     if (u_shadingType == 0) {
-        color = vec4(getColorBlinnPhong(u_eye, lookAt), 1.0);
+        gl_FragColor = vec4(getColorBlinnPhong(u_eye, lookAt), 1.0);
     } else {
-        color = vec4(getColorGI(u_eye, lookAt), 1.0);
+        gl_FragColor = vec4(getColorGI(u_eye, lookAt), 1.0);
     }
 }

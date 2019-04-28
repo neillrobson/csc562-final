@@ -25,4 +25,14 @@ function resize(canvas: HTMLCanvasElement) {
         canvas.height = displayHeight;
 }
 
-export { resize };
+function reflow(canvas: HTMLCanvasElement) {
+    if (window.innerHeight > window.innerWidth) {
+        canvas.style.width = '100vw';
+        canvas.style.height = `${canvas.clientWidth}px`;
+    } else {
+        canvas.style.height = '100vh';
+        canvas.style.width = `${canvas.clientHeight}px`;
+    }
+}
+
+export { resize, reflow };
