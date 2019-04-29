@@ -156,15 +156,15 @@ class Renderer {
         let targetTransform = mat4.targetTo(mat4.create(), vec3.create(), lookAt, normUp);
 
         this.reglSample({
-            backgroundType: Number(featureToggles.backgroundType),
+            backgroundType: featureToggles.backgroundType,
             eye: cameraPosition.eye,
             rayMarchIterations: featureToggles.rayMarchIterations,
-            shadingType: Number(featureToggles.shadingType),
+            shadingType: featureToggles.shadingType,
             targetTransform: targetTransform,
-            useCosineBias: Number(featureToggles.useCosineBias),
-            useDirectLighting: Number(featureToggles.useDirectLighting),
+            useCosineBias: featureToggles.useCosineBias,
+            useDirectLighting: featureToggles.useDirectLighting,
             zFunctionIterations: featureToggles.zFunctionIterations,
-            zFunctionType: Number(featureToggles.zFunctionType),
+            zFunctionType: featureToggles.zFunctionType,
             rand: [Math.random(), Math.random()],
             source: this.pingPongBuffers[this.ping],
             destination: this.pingPongBuffers[1 - this.ping],

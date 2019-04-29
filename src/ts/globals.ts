@@ -15,7 +15,8 @@ const featureToggles = {
     backgroundType: 1,
     useCosineBias: 0,
     useDirectLighting: 0,
-    resolution: 512
+    resolution: 512,
+    screenFillType: 0
 };
 
 const cameraPosition = {

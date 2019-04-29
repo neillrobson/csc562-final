@@ -1,3 +1,5 @@
+import { featureToggles } from "./globals";
+
 // get the JSON file from the passed URL
 function getJSONFile(url: string, descr: string) {
     var httpReq = new XMLHttpRequest(); // a new http request
@@ -26,12 +28,12 @@ function resize(canvas: HTMLCanvasElement) {
 }
 
 function reflow(canvas: HTMLCanvasElement) {
-    if (window.innerHeight > window.innerWidth) {
-        canvas.style.width = '100vw';
-        canvas.style.height = `${canvas.clientWidth}px`;
+    if (featureToggles.screenFillType === 0) {
+        canvas.style.width = '100vmin';
+        canvas.style.height = '100vmin';
     } else {
-        canvas.style.height = '100vh';
-        canvas.style.width = `${canvas.clientHeight}px`;
+        canvas.style.width = '100vmax';
+        canvas.style.height = '100vmax';
     }
 }
 

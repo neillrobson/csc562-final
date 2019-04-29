@@ -13,14 +13,20 @@ const stats = new Stats();
 stats.showPanel(1);
 document.body.appendChild(stats.dom);
 
+function toNumberAndScreenReset(value: String) {
+    this.object[this.property] = Number(value);
+    renderer.resetSampler();
+}
+
 const gui = new dat.GUI();
-gui.add(featureToggles, "zFunctionType", { Trig: 1, Polynomial: 0 });
-gui.add(featureToggles, "shadingType", { BlinnPhong: 0, Global: 1 });
-gui.add(featureToggles, "zFunctionIterations", 1, 16);
-gui.add(featureToggles, "rayMarchIterations", 1, 128);
-gui.add(featureToggles, "backgroundType", { White: 0, Colored: 1 });
-gui.add(featureToggles, "useCosineBias", { False: 0, True: 1 });
-gui.add(featureToggles, "useDirectLighting", { False: 0, True: 1 });
+gui.add(featureToggles, "zFunctionType", { Trig: 1, Polynomial: 0 }).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "shadingType", { BlinnPhong: 0, Global: 1 }).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "zFunctionIterations", 1, 16).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "rayMarchIterations", 1, 128).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "backgroundType", { White: 0, Colored: 1 }).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "useCosineBias", { False: 0, True: 1 }).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "useDirectLighting", { False: 0, True: 1 }).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "screenFillType", { Shrink: 0, Stretch: 1 }).onChange(toNumberAndScreenReset);
 
 const flexCenter = document.createElement("div");
 flexCenter.style.width = "100vw";
@@ -28,6 +34,7 @@ flexCenter.style.height = "100vh";
 flexCenter.style.display = "flex";
 flexCenter.style.justifyContent = "center";
 flexCenter.style.alignItems = "center";
+flexCenter.style.overflow = "hidden";
 document.body.appendChild(flexCenter);
 
 flexCenter.appendChild(renderer.canvas);
@@ -37,13 +44,12 @@ resetView();
 function render() {
     stats.begin();
 
-    // reflow(renderer.canvas);
+    reflow(renderer.canvas);
 
     renderer.sample();
     renderer.display();
 
     stats.end();
-    // setTimeout(requestAnimationFrame.bind(null, render), 1000);
     requestAnimationFrame(render);
 }
 render();
