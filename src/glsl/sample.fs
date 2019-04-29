@@ -16,6 +16,7 @@ const vec3 X_EPSILON = vec3(EPSILON, 0.0, 0.0);
 const vec3 Y_EPSILON = vec3(0.0, EPSILON, 0.0);
 const vec3 Z_EPSILON = vec3(0.0, 0.0, EPSILON);
 
+uniform sampler2D source;
 uniform sampler2D tRand2Normal;
 uniform sampler2D tRand3Normal;
 uniform sampler2D tRand2Uniform;
@@ -211,9 +212,12 @@ vec3 getColorGI(vec3 from, vec3 dir) {
 }
 
 void main() {
-    // uv is (0, 0) at the center of the screen
-    vec2 uv = (2.0 * gl_FragCoord.xy - vec2(viewportWidth, viewportHeight)) / float(viewportHeight);
-    vec3 lookAt = (targetTransform * vec4(normalize(vec3(uv, -1.0)), 1.0)).xyz;
+    vec2 resolution = vec2(viewportWidth, viewportHeight);
+    vec3 sourceRgb = texture2D(source, gl_FragCoord.xy / resolution).rgb;
 
-    gl_FragColor = vec4(getColorGI(eye, lookAt), 1.0);
+    // lookAtCoords is (0, 0) at the center of the screen
+    vec2 lookAtCoords = (2.0 * gl_FragCoord.xy - resolution) / float(viewportHeight);
+    vec3 lookAt = (targetTransform * vec4(normalize(vec3(lookAtCoords, -1.0)), 1.0)).xyz;
+
+    gl_FragColor = vec4(sourceRgb + getColorGI(eye, lookAt), 1.0);
 }

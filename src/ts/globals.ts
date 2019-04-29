@@ -18,11 +18,18 @@ const featureToggles = {
     resolution: 512
 };
 
+const cameraPosition = {
+    eye: vec3.create(),
+    center: vec3.create(),
+    up: vec3.create()
+};
+
 export {
     DEFAULT_EYE,
     DEFAULT_CENTER,
     DEFAULT_UP,
     viewDelta,
     RAND_SIZE,
-    featureToggles
+    featureToggles,
+    cameraPosition
 }
