@@ -4,7 +4,7 @@ precision highp float;
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
 #pragma glslify: nextZPoly = require('./mandel-sequencers/poly.glsl');
 
-const int RAY_DEPTH = 3;
+const int MAX_BOUNCES = 16;
 const int MAX_Z_FUNCTION_ITERATIONS = 16;
 const int MAX_RAY_MARCH_ITERATIONS = 128;
 const float ALBEDO = 0.6;
@@ -25,6 +25,7 @@ uniform vec2 rand;
 uniform vec3 eye;
 uniform int antialias;
 uniform int backgroundType;
+uniform int bounces;
 uniform int rayMarchIterations;
 uniform int shadingType;
 uniform int useCosineBias;
@@ -194,7 +195,8 @@ vec3 getColorGI(vec3 from, vec3 dir) {
 
     vec3 luminance = vec3(1.0);
 
-    for (int i = 0; i < RAY_DEPTH; ++i) {
+    for (int i = 0; i < MAX_BOUNCES; ++i) {
+        if (i >= bounces) break;
         if (trace(from, dir, hit, hitNormal, complexity)) {
             if (useCosineBias == 0) {
                 dir = getSampleUnweighted(hitNormal);

@@ -109,6 +109,7 @@ class Renderer {
                 rand: this.reglProp('rand'),
                 source: this.reglProp('source'),
                 antialias: this.reglProp('antialias'),
+                bounces: this.reglProp('bounces'),
             },
             framebuffer: this.reglProp('destination'),
             depth: { enable: false },
@@ -169,6 +170,7 @@ class Renderer {
             source: this.pingPongBuffers[this.ping],
             destination: this.pingPongBuffers[1 - this.ping],
             antialias: featureToggles.antialias,
+            bounces: featureToggles.bounces,
         });
 
         this.ping = 1 - this.ping;

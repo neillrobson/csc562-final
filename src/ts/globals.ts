@@ -9,6 +9,7 @@ const RAND_SIZE = 1024;
 
 const featureToggles = {
     antialias: 0,
+    bounces: 3,
     zFunctionType: 0,
     shadingType: 0,
     zFunctionIterations: 10,
