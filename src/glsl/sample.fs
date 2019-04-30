@@ -23,6 +23,7 @@ uniform sampler2D tRand2Uniform;
 // Avoids sampling the same area between frames
 uniform vec2 rand;
 uniform vec3 eye;
+uniform int antialias;
 uniform int backgroundType;
 uniform int rayMarchIterations;
 uniform int shadingType;
@@ -218,8 +219,13 @@ vec3 getColorGI(vec3 from, vec3 dir) {
 void main() {
     vec3 sourceRgb = texture2D(source, gl_FragCoord.xy / resolution).rgb;
 
+    vec2 jitter = vec2(0.0);
+    if (antialias == 1) {
+        jitter = fRand2Uniform() - 0.5;
+    }
+
     // lookAtCoords is (0, 0) at the center of the screen
-    vec2 lookAtCoords = (2.0 * gl_FragCoord.xy - resolution) / resolution;
+    vec2 lookAtCoords = 2.0 * (gl_FragCoord.xy + jitter) / resolution - 1.0;
     vec3 lookAt = (targetTransform * vec4(normalize(vec3(lookAtCoords, -1.0)), 1.0)).xyz;
 
     if (shadingType == 0) {

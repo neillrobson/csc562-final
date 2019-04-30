@@ -101,7 +101,6 @@ class Renderer {
                 shadingType: this.reglProp("shadingType"),
                 targetTransform: this.reglProp("targetTransform"),
                 useCosineBias: this.reglProp("useCosineBias"),
-                // useDirectLighting: this.reglProp("useDirectLighting"),
                 zFunctionIterations: this.reglProp("zFunctionIterations"),
                 zFunctionType: this.reglProp("zFunctionType"),
                 tRand2Uniform: this.tRand2Uniform,
@@ -109,6 +108,7 @@ class Renderer {
                 tRand3Normal: this.tRand3Normal,
                 rand: this.reglProp('rand'),
                 source: this.reglProp('source'),
+                antialias: this.reglProp('antialias'),
             },
             framebuffer: this.reglProp('destination'),
             depth: { enable: false },
@@ -168,6 +168,7 @@ class Renderer {
             rand: [Math.random(), Math.random()],
             source: this.pingPongBuffers[this.ping],
             destination: this.pingPongBuffers[1 - this.ping],
+            antialias: featureToggles.antialias,
         });
 
         this.ping = 1 - this.ping;

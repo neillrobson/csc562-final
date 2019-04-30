@@ -27,6 +27,7 @@ gui.add(featureToggles, "backgroundType", { White: 0, Colored: 1 }).onChange(toN
 gui.add(featureToggles, "useCosineBias", { False: 0, True: 1 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "useDirectLighting", { False: 0, True: 1 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "screenFillType", { Shrink: 0, Stretch: 1 }).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "antialias", { On: 1, Off: 0 }).onChange(toNumberAndScreenReset);
 
 const flexCenter = document.createElement("div");
 flexCenter.style.width = "100vw";
