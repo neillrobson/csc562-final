@@ -17,7 +17,12 @@ const featureToggles = {
     backgroundType: 1,
     useDirectLighting: true,
     resolution: 512,
-    screenFillType: 0
+    screenFillType: 0,
+    lightRadius: 2,
+    lightIntensity: 4.1,
+    lightAngle: 0,
+    fractalRoughness: 0.5,
+    backgroundColor: [ 255, 128, 128 ],
 };
 
 const cameraPosition = {

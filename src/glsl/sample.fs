@@ -7,18 +7,13 @@ precision highp float;
 const int MAX_BOUNCES = 16;
 const int MAX_Z_FUNCTION_ITERATIONS = 16;
 const int MAX_RAY_MARCH_ITERATIONS = 128;
-const float ALBEDO = 0.6;
-const float ROUGHNESS = 0.5;
 const float PI = 3.14;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 3.0;
 const float MANDELBULB_POWER = 8.0;
-const float LIGHT_RADIUS = 2.0;
-const float LIGHT_INTENSITY = 4.1;
 const vec3 X_EPSILON = vec3(EPSILON, 0.0, 0.0);
 const vec3 Y_EPSILON = vec3(0.0, EPSILON, 0.0);
 const vec3 Z_EPSILON = vec3(0.0, 0.0, EPSILON);
-const vec3 LIGHT_POS = vec3(8.0, 8.0, -8.0);
 const vec3 LIGHT_COLOR = vec3(1.0);
 const vec3 FRACTAL_COLOR = vec3(0.9);
 
@@ -29,6 +24,7 @@ uniform sampler2D tRand2Uniform;
 // Avoids sampling the same area between frames
 uniform vec2 rand;
 uniform vec3 eye;
+uniform vec3 backgroundColor;
 uniform int backgroundType;
 uniform int bounces;
 uniform int rayMarchIterations;
@@ -37,12 +33,18 @@ uniform int viewportHeight;
 uniform int viewportWidth;
 uniform int zFunctionIterations;
 uniform int zFunctionType;
+uniform float lightIntensity;
+uniform float lightRadius;
+uniform float lightAngle;
+uniform float fractalRoughness;
 uniform bool antialias;
 uniform bool useDirectLighting;
-uniform float randsize;
 uniform mat4 targetTransform;
 
 vec2 resolution = vec2(viewportWidth, viewportHeight);
+vec3 lightPos = vec3(8.0 * sin(lightAngle), 8.0, 8.0 * cos(lightAngle));
+// Avoids sampling the same area within a frame
+vec2 randState = vec2(0.0);
 
 // Source for orthogonal vector calculator: http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
 vec3 ortho(in vec3 v) {
@@ -63,9 +65,6 @@ bool raySphereIntersect(in vec3 rayOrigin, in vec3 rayDirection, in vec3 sphereO
     return t >= 0.0;
 }
 
-// Avoids sampling the same area within a frame
-vec2 randState = vec2(0.0);
-
 // A random vec2 whose coordinates are distributed around zero according to a normal curve.
 vec2 fRand2Uniform() {
     vec2 ret = texture2D(tRand2Uniform, gl_FragCoord.xy / resolution + rand.xy + randState).ba;
@@ -78,11 +77,6 @@ vec2 fRand2Normal() {
     vec2 ret = texture2D(tRand2Normal, gl_FragCoord.xy / resolution + rand.xy + randState).ba;
     randState += ret;
     return ret;
-}
-
-// A random vec2 that lies on or within the unit circle.
-vec2 fRand2Disc() {
-    return fRand2Normal() * (fRand2Uniform()).x;
 }
 
 // A random vec3 that lies on the unit sphere.
@@ -102,25 +96,13 @@ vec3 getSampleUnweighted(vec3 dir) {
 }
 
 // A cosine-weighted vec3 within the hemisphere centered on dir.
-// We are generating random points on a flat disc, then shooting them straight up onto a hemisphere.
-vec3 getSampleWeightedAlt(vec3 dir) {
-    vec3 nDir = normalize(dir);
-    vec3 o1 = normalize(ortho(nDir));
-    vec3 o2 = normalize(cross(nDir, o1));
-    vec2 randVec = fRand2Disc();
-    float randLength = length(randVec);
-    vec3 weights = vec3(randVec, sqrt(1.0 - randLength * randLength));
-    return o1 * weights.x + o2 * weights.y + nDir * weights.z;
-}
-
-// A cosine-weighted vec3 within the hemisphere centered on dir.
 vec3 getSampleWeighted(vec3 dir) {
     return normalize(normalize(dir) + fRand3Normal());
 }
 
 vec3 getBackground(vec3 dir) {
     if (backgroundType == 0) {
-        return vec3(0.1);
+        return backgroundColor;
     } else {
         return yignbu(acos(-normalize(dir).y) / PI).xyz;
     }
@@ -183,10 +165,10 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
     float totalStepMin = 1e38;
 
     // Light intersection
-    if (raySphereIntersect(from, dir, LIGHT_POS, LIGHT_RADIUS, totalStep)) {
+    if (raySphereIntersect(from, dir, lightPos, lightRadius, totalStep)) {
         totalStepMin = totalStep;
         hitPos = from + dir * totalStep;
-        hitNormal = normalize(hitPos - LIGHT_POS);
+        hitNormal = normalize(hitPos - lightPos);
         hit = true;
         hitLight = true;
     } else {
@@ -255,18 +237,18 @@ vec3 getColorGI(in vec3 from, in vec3 dir) {
 
         if (useDirectLighting) {
             // Soft shadows
-            vec3 lightSamplePos = LIGHT_POS + fRand3Normal() * LIGHT_RADIUS;
+            vec3 lightSamplePos = lightPos + fRand3Normal() * lightRadius;
             vec3 lightSampleRay = normalize(lightSamplePos - hitPos);
             vec3 oldPosRay = normalize(pos - hitPos);
             if (trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight) && hitLight) {
                 vec3 halfVec = normalize(lightSampleRay + oldPosRay);
                 float d = clamp(dot(hitNormal, halfVec), 0.0, 1.0);
-                d *= pow(asin(LIGHT_RADIUS / distance(hitPos, LIGHT_POS)), 2.0);
-                accum += d * LIGHT_INTENSITY * LIGHT_COLOR * mask;
+                d *= pow(asin(lightRadius / distance(hitPos, lightPos)), 2.0);
+                accum += d * lightIntensity * LIGHT_COLOR * mask;
             }
         }
 
-        ray = normalize(mix(reflect(ray, hitNormal), getSampleWeighted(hitNormal), ROUGHNESS));
+        ray = normalize(mix(reflect(ray, hitNormal), getSampleWeighted(hitNormal), fractalRoughness));
         // Ensure that the new position does not hit the object at the same point
         pos = hitPos + ray * EPSILON;
     }

@@ -110,6 +110,11 @@ class Renderer {
                 antialias: this.reglProp('antialias'),
                 bounces: this.reglProp('bounces'),
                 useDirectLighting: this.reglProp('useDirectLighting'),
+                fractalRoughness: this.reglProp('fractalRoughness'),
+                lightRadius: this.reglProp('lightRadius'),
+                lightAngle: this.reglProp('lightAngle'),
+                lightIntensity: this.reglProp('lightIntensity'),
+                backgroundColor: this.reglProp('backgroundColor'),
             },
             framebuffer: this.reglProp('destination'),
             depth: { enable: false },
@@ -170,6 +175,11 @@ class Renderer {
             destination: this.pingPongBuffers[1 - this.ping],
             antialias: featureToggles.antialias,
             bounces: featureToggles.bounces,
+            lightIntensity: featureToggles.lightIntensity,
+            lightAngle: featureToggles.lightAngle,
+            lightRadius: featureToggles.lightRadius,
+            fractalRoughness: featureToggles.fractalRoughness,
+            backgroundColor: featureToggles.backgroundColor.map(x => x / 255),
         });
 
         this.ping = 1 - this.ping;
