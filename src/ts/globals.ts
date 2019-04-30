@@ -23,6 +23,8 @@ const featureToggles = {
     lightAngle: 0,
     fractalRoughness: 0.5,
     backgroundColor: [ 255, 128, 128 ],
+    lightTheta: 0,
+    lightPhi: 0.2,
 };
 
 const cameraPosition = {

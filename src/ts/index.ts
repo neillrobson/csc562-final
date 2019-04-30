@@ -28,9 +28,10 @@ gui.add(featureToggles, "useDirectLighting").onChange(renderer.resetSampler.bind
 gui.add(featureToggles, "screenFillType", { Shrink: 0, Stretch: 1 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "antialias").onChange(renderer.resetSampler.bind(renderer));
 gui.add(featureToggles, "bounces", 1, 16, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "lightAngle", 0, Math.PI * 2).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "lightTheta", 0, 1).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "lightPhi", 0, 1).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "lightIntensity", 0, 16).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "lightRadius", 0, 4).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "lightRadius", 0, 10).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "fractalRoughness", 0, 1).onChange(toNumberAndScreenReset);
 gui.addColor(featureToggles, "backgroundColor").onChange(renderer.resetSampler.bind(renderer));
 

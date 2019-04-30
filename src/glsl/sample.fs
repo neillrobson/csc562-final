@@ -4,10 +4,10 @@ precision highp float;
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
 #pragma glslify: nextZPoly = require('./mandel-sequencers/poly.glsl');
 
+const float PI = 3.141592653589793238462643383279502884197169;
 const int MAX_BOUNCES = 16;
 const int MAX_Z_FUNCTION_ITERATIONS = 16;
 const int MAX_RAY_MARCH_ITERATIONS = 128;
-const float PI = 3.14;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 3.0;
 const float MANDELBULB_POWER = 8.0;
@@ -35,14 +35,14 @@ uniform int zFunctionIterations;
 uniform int zFunctionType;
 uniform float lightIntensity;
 uniform float lightRadius;
-uniform float lightAngle;
+uniform float lightTheta;
+uniform float lightPhi;
 uniform float fractalRoughness;
 uniform bool antialias;
 uniform bool useDirectLighting;
 uniform mat4 targetTransform;
 
 vec2 resolution = vec2(viewportWidth, viewportHeight);
-vec3 lightPos = vec3(8.0 * sin(lightAngle), 8.0, 8.0 * cos(lightAngle));
 // Avoids sampling the same area within a frame
 vec2 randState = vec2(0.0);
 
@@ -100,8 +100,37 @@ vec3 getSampleWeighted(vec3 dir) {
     return normalize(normalize(dir) + fRand3Normal());
 }
 
+// A cosine-weighted vec3 within the solid angle centered on dir.
+vec3 getConeSample(vec3 dir, float maxCos) {
+    vec3 nDir = normalize(dir);
+    vec3 o1 = normalize(ortho(nDir));
+    vec3 o2 = normalize(cross(nDir, o1));
+    vec2 rand2 = fRand2Uniform();
+    float u = 2.0 * PI * rand2.x;
+    float z = 1.0 - rand2.y * (1.0 - maxCos);
+    float oneminus = sqrt(1.0 - z * z);
+    return cos(u) * oneminus * o1 + sin(u) * oneminus * o2 + z * nDir;
+}
+
+vec2 SunPos = vec2(lightTheta, lightPhi);
+float sunAngularDiameterCos = cos(lightRadius*PI/180.0);
+
+vec3 fromSpherical(vec2 p) {
+	return vec3(
+		cos(p.x)*sin(p.y),
+		cos(p.y),
+		sin(p.x)*sin(p.y)
+    );
+}
+	
+vec3 getSunDirection() {
+    return normalize(fromSpherical((SunPos-vec2(0.0,0.5))*vec2(6.28,3.14)));
+}
+
 vec3 getBackground(vec3 dir) {
-    if (backgroundType == 0) {
+    if (dot(getSunDirection(), dir) >= sunAngularDiameterCos) {
+        return LIGHT_COLOR;
+    } else if (backgroundType == 0) {
         return backgroundColor;
     } else {
         return yignbu(acos(-normalize(dir).y) / PI).xyz;
@@ -161,25 +190,12 @@ vec3 getMandelbulbNormal(in vec3 hitPos) {
  */
 bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out float complexity, out bool hitLight) {
     bool hit = false;
-    float totalStep;
-    float totalStepMin = 1e38;
-
-    // Light intersection
-    if (raySphereIntersect(from, dir, lightPos, lightRadius, totalStep)) {
-        totalStepMin = totalStep;
-        hitPos = from + dir * totalStep;
-        hitNormal = normalize(hitPos - lightPos);
-        hit = true;
-        hitLight = true;
-    } else {
-        hitLight = false;
-    }
-
+    float totalStep = 0.0;
+    hitLight = (dot(getSunDirection(), dir) >= sunAngularDiameterCos);
     vec3 marchTo;
     vec3 escapeZ;
     float dummy;
     int itr;
-    totalStep = 0.0;
 
     // Mandelbulb intersection
     if (raySphereIntersect(from, dir, vec3(0, 0, 0), 1.2, dummy) || dummy < 0.0) {
@@ -191,8 +207,7 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
             if (nextStep < EPSILON) break;
             totalStep += nextStep;
         }
-        if (itr < rayMarchIterations && totalStep < totalStepMin) {
-            totalStepMin = totalStep;
+        if (itr < rayMarchIterations) {
             hitPos = marchTo;
             hitNormal = getMandelbulbNormal(marchTo);
             hitLight = false;
@@ -205,14 +220,209 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
     return hit;
 }
 
+// ###################################################################################
+
+// uniform float turbidity; // slider[1,2,16]
+// // Angular sun size - physical sun is 0.53 degrees
+// uniform float sunSize; // slider[0,1,10]
+// uniform float SkyFactor; // slider[0,1,100]
+// uniform vec2 SunPos; // slider[(0,0),(0,0.2),(1,1)]
+
+const float turbidity = 2.0;
+const float SkyFactor = 1.0;
+
+const float mieCoefficient = 0.005;
+const float mieDirectionalG = 0.80;
+
+const float n = 1.0003; // refractive index of air
+const float N = 2.545E25; // number of molecules per unit volume for air at
+// 288.15K and 1013mb (sea level -45 celsius)
+
+// wavelength of used primaries, according to preetham
+const vec3 primaryWavelengths = vec3(680E-9, 550E-9, 450E-9);
+
+// mie stuff
+// K coefficient for the primaries
+const vec3 K = vec3(0.686, 0.678, 0.666);
+const float v = 4.0;
+
+// optical length at zenith for molecules
+const float rayleighZenithLength = 8.4E3;
+const float mieZenithLength = 1.25E3;
+const vec3 up = vec3(0.0, 0.0, 1.0);
+
+const float sunIntensity = 1000.0;
+
+// earth shadow hack
+const float cutoffAngle = PI/1.95;
+const float steepness = 1.5;
+
+float RayleighPhase(float cosViewSunAngle) {
+	return (3.0 / (16.0*PI)) * (1.0 + pow(cosViewSunAngle, 2.0));
+}
+
+vec3 totalMie(vec3 primaryWavelengths, vec3 K, float T) {
+	float c = (0.2 * T ) * 10E-18;
+	return 0.434 * c * PI * pow((2.0 * PI) / primaryWavelengths, vec3(v - 2.0)) * K;
+}
+
+float hgPhase(float cosViewSunAngle, float g) {
+	return (1.0 / (4.0*PI)) * ((1.0 - pow(g, 2.0)) / pow(1.0 - 2.0*g*cosViewSunAngle + pow(g, 2.0), 1.5));
+}
+
+float SunIntensity(float zenithAngleCos) {
+	return sunIntensity * max(0.0, 1.0 - exp(-((cutoffAngle - acos(zenithAngleCos))/steepness)));
+}
+
+vec3 sun(vec3 viewDir) {
+    vec3 sunDirection = getSunDirection();
+	// Cos Angles
+	float cosViewSunAngle = dot(viewDir, sunDirection);
+	float cosSunUpAngle = dot(sunDirection, up);
+	float cosUpViewAngle = dot(up, viewDir);
+
+	float sunE = SunIntensity(cosSunUpAngle);  // Get sun intensity based on how high in the sky it is
+	// extinction (asorbtion + out scattering)
+	// rayleigh coeficients
+	vec3 rayleighAtX = vec3(5.176821E-6, 1.2785348E-5, 2.8530756E-5);
+	
+	// mie coefficients
+	vec3 mieAtX = totalMie(primaryWavelengths, K, turbidity) * mieCoefficient;
+	
+	// optical length
+	// cutoff angle at 90 to avoid singularity in next formula.
+	float zenithAngle = max(0.0, cosUpViewAngle);
+	
+	float rayleighOpticalLength = rayleighZenithLength / zenithAngle;
+	float mieOpticalLength = mieZenithLength / zenithAngle;
+	
+	// combined extinction factor
+	vec3 Fex = exp(-(rayleighAtX * rayleighOpticalLength + mieAtX * mieOpticalLength));
+	
+	// in scattering
+	vec3 rayleighXtoEye = rayleighAtX * RayleighPhase(cosViewSunAngle);
+	vec3 mieXtoEye = mieAtX *  hgPhase(cosViewSunAngle, mieDirectionalG);
+	
+	vec3 totalLightAtX = rayleighAtX + mieAtX;
+	vec3 lightFromXtoEye = rayleighXtoEye + mieXtoEye;
+	
+	vec3 somethingElse = sunE * (lightFromXtoEye / totalLightAtX);
+	
+	vec3 sky = somethingElse * (1.0 - Fex);
+	sky *= mix(vec3(1.0),pow(somethingElse * Fex,vec3(0.5)),clamp(pow(1.0-dot(up, sunDirection),5.0),0.0,1.0));
+	// composition + solar disc
+	
+//	float sundisk = smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
+	float sundisk = 
+		sunAngularDiameterCos < cosViewSunAngle ? 1.0 : 0.0;
+	//	smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
+	vec3 sun = (sunE * 19000.0 * Fex)*sundisk;
+	
+	return 0.01*sun;
+}
+
+vec3 sky(vec3 viewDir) {
+    vec3 sunDirection = getSunDirection();
+	// Cos Angles
+	float cosViewSunAngle = dot(viewDir, sunDirection);
+	float cosSunUpAngle = dot(sunDirection, up);
+	float cosUpViewAngle = dot(up, viewDir);
+	
+	float sunE = SunIntensity(cosSunUpAngle);  // Get sun intensity based on how high in the sky it is
+	// extinction (asorbtion + out scattering)
+	// rayleigh coeficients
+	vec3 rayleighAtX = vec3(5.176821E-6, 1.2785348E-5, 2.8530756E-5);
+	
+	// mie coefficients
+	vec3 mieAtX = totalMie(primaryWavelengths, K, turbidity) * mieCoefficient;
+	
+	// optical length
+	// cutoff angle at 90 to avoid singularity in next formula.
+	float zenithAngle = max(0.0, cosUpViewAngle);
+	
+	float rayleighOpticalLength = rayleighZenithLength / zenithAngle;
+	float mieOpticalLength = mieZenithLength / zenithAngle;
+	
+	// combined extinction factor
+	vec3 Fex = exp(-(rayleighAtX * rayleighOpticalLength + mieAtX * mieOpticalLength));
+	
+	// in scattering
+	vec3 rayleighXtoEye = rayleighAtX * RayleighPhase(cosViewSunAngle);
+	vec3 mieXtoEye = mieAtX *  hgPhase(cosViewSunAngle, mieDirectionalG);
+	
+	vec3 totalLightAtX = rayleighAtX + mieAtX;
+	vec3 lightFromXtoEye = rayleighXtoEye + mieXtoEye;
+	
+	vec3 somethingElse = sunE * (lightFromXtoEye / totalLightAtX);
+	
+	vec3 sky = somethingElse * (1.0 - Fex);
+	sky *= mix(vec3(1.0),pow(somethingElse * Fex,vec3(0.5)),clamp(pow(1.0-dot(up, sunDirection),5.0),0.0,1.0));
+	// composition + solar disc
+	
+	float sundisk = smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
+	vec3 sun = (sunE * 19000.0 * Fex)*sundisk;
+	
+	return SkyFactor*0.01*(sky);
+}
+
+vec3 sunsky(vec3 viewDir) {
+    vec3 sunDirection = getSunDirection();
+	// Cos Angles
+	float cosViewSunAngle = dot(viewDir, sunDirection);
+	float cosSunUpAngle = dot(sunDirection, up);
+	float cosUpViewAngle = dot(up, viewDir);
+    if (sunAngularDiameterCos == 1.0) {
+        return vec3(1.0,0.0,0.0);	
+    }
+	float sunE = SunIntensity(cosSunUpAngle);  // Get sun intensity based on how high in the sky it is
+	// extinction (asorbtion + out scattering)
+	// rayleigh coeficients
+	vec3 rayleighAtX = vec3(5.176821E-6, 1.2785348E-5, 2.8530756E-5);
+	
+	// mie coefficients
+	vec3 mieAtX = totalMie(primaryWavelengths, K, turbidity) * mieCoefficient;
+	
+	// optical length
+	// cutoff angle at 90 to avoid singularity in next formula.
+	float zenithAngle = max(0.0, cosUpViewAngle);
+	
+	float rayleighOpticalLength = rayleighZenithLength / zenithAngle;
+	float mieOpticalLength = mieZenithLength / zenithAngle;
+	
+	// combined extinction factor
+	vec3 Fex = exp(-(rayleighAtX * rayleighOpticalLength + mieAtX * mieOpticalLength));
+	
+	// in scattering
+	vec3 rayleighXtoEye = rayleighAtX * RayleighPhase(cosViewSunAngle);
+	vec3 mieXtoEye = mieAtX *  hgPhase(cosViewSunAngle, mieDirectionalG);
+	
+	vec3 totalLightAtX = rayleighAtX + mieAtX;
+	vec3 lightFromXtoEye = rayleighXtoEye + mieXtoEye;
+	
+	vec3 somethingElse = sunE * (lightFromXtoEye / totalLightAtX);
+	
+	vec3 sky = somethingElse * (1.0 - Fex);
+	sky *= mix(vec3(1.0),pow(somethingElse * Fex,vec3(0.5)),clamp(pow(1.0-dot(up, sunDirection),5.0),0.0,1.0));
+	// composition + solar disc
+	
+	float sundisk = smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
+	vec3 sun = (sunE * 19000.0 * Fex)*sundisk;
+	
+	return 0.01*(sun+sky);
+}
+
+// ###################################################################################
+
 vec3 getColorGI(in vec3 from, in vec3 dir) {
-    vec3 accum = vec3(0.0);
-    vec3 mask = vec3(1.0);
     vec3 pos = from;
     vec3 ray = dir;
+    vec3 color = vec3(1.0);
+    vec3 direct = vec3(0.0);
 
     for (int i = 0; i < MAX_BOUNCES; ++i) {
-        if (i >= bounces) break;
+        if (i >= bounces) {
+            return direct;
+        };
         vec3 hitPos;
         vec3 hitNormal;
         bool hitLight;
@@ -220,31 +430,21 @@ vec3 getColorGI(in vec3 from, in vec3 dir) {
         vec3 dummyVec;
         // Hit nothing (skybox)
         if (!trace(pos, ray, hitPos, hitNormal, dummyFloat, hitLight)) {
-            accum += getBackground(ray) * mask;
-            break;
-        }
-        // Hit light source
-        if (hitLight) {
-            if (useDirectLighting) {
-                accum += LIGHT_COLOR * mask;
-            } else {
-                accum += getBackground(ray) * mask;
-            }
+            color *= getBackground(ray);
             break;
         }
         // Hit fractal
-        mask *= FRACTAL_COLOR;
+        color *= FRACTAL_COLOR;
 
         if (useDirectLighting) {
+            vec3 lightDirection = getSunDirection();
             // Soft shadows
-            vec3 lightSamplePos = lightPos + fRand3Normal() * lightRadius;
-            vec3 lightSampleRay = normalize(lightSamplePos - hitPos);
+            vec3 lightSampleRay = getConeSample(lightDirection, sunAngularDiameterCos);
             vec3 oldPosRay = normalize(pos - hitPos);
-            if (trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight) && hitLight) {
+            if (!trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight) && hitLight) {
                 vec3 halfVec = normalize(lightSampleRay + oldPosRay);
                 float d = clamp(dot(hitNormal, halfVec), 0.0, 1.0);
-                d *= pow(asin(lightRadius / distance(hitPos, lightPos)), 2.0);
-                accum += d * lightIntensity * LIGHT_COLOR * mask;
+                direct += d * lightIntensity * LIGHT_COLOR * color;
             }
         }
 
@@ -253,7 +453,7 @@ vec3 getColorGI(in vec3 from, in vec3 dir) {
         pos = hitPos + ray * EPSILON;
     }
     
-    return accum;
+    return direct + color;
 }
 
 #pragma glslify: getColorBlinnPhong = require('./color-functions/blinn-phong.glsl', trace=trace);
