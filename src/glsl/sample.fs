@@ -8,13 +8,19 @@ const int MAX_BOUNCES = 16;
 const int MAX_Z_FUNCTION_ITERATIONS = 16;
 const int MAX_RAY_MARCH_ITERATIONS = 128;
 const float ALBEDO = 0.6;
+const float ROUGHNESS = 0.5;
 const float PI = 3.14;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 3.0;
 const float MANDELBULB_POWER = 8.0;
+const float LIGHT_RADIUS = 2.0;
+const float LIGHT_INTENSITY = 4.1;
 const vec3 X_EPSILON = vec3(EPSILON, 0.0, 0.0);
 const vec3 Y_EPSILON = vec3(0.0, EPSILON, 0.0);
 const vec3 Z_EPSILON = vec3(0.0, 0.0, EPSILON);
+const vec3 LIGHT_POS = vec3(8.0, 8.0, -8.0);
+const vec3 LIGHT_COLOR = vec3(1.0);
+const vec3 FRACTAL_COLOR = vec3(0.6);
 
 uniform sampler2D source;
 uniform sampler2D tRand2Normal;
@@ -43,13 +49,18 @@ vec3 ortho(in vec3 v) {
     return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y);
 }
 
-bool hitSphere(vec3 center, float radius, vec3 lookOrigin, vec3 lookDirection) {
-    vec3 oc = lookOrigin - center;
-    float a = dot(lookDirection, lookDirection);
-    float b = 2.0 * dot(oc, lookDirection);
-    float c = dot(oc, oc) - radius * radius;
+// Source for ray-sphere intersection: http://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
+bool raySphereIntersect(in vec3 rayOrigin, in vec3 rayDirection, in vec3 sphereOrigin, in float sphereRadius, out float t) {
+    t = 1.0; // Set t to a positive value to signal whether or not we failed the discriminant test
+    vec3 sphereToEye = rayOrigin - sphereOrigin;
+    float a = dot(rayDirection, rayDirection);
+    float b = 2.0 * dot(sphereToEye, rayDirection);
+    float c = dot(sphereToEye, sphereToEye) - sphereRadius * sphereRadius;
     float discriminant = b * b - 4.0 * a * c;
-    return discriminant > 0.0;
+    if (discriminant < 0.0) return false;
+    // We always want the smaller of the two solutions (the intersection closer to the ray origin)
+    t = (-b - sqrt(discriminant)) / (2.0 * a);
+    return t >= 0.0;
 }
 
 // Avoids sampling the same area within a frame
@@ -91,6 +102,7 @@ vec3 getSampleUnweighted(vec3 dir) {
 }
 
 // A cosine-weighted vec3 within the hemisphere centered on dir.
+// We are generating random points on a flat disc, then shooting them straight up onto a hemisphere.
 vec3 getSampleWeighted(vec3 dir) {
     vec3 nDir = normalize(dir);
     vec3 o1 = normalize(ortho(nDir));
@@ -101,9 +113,13 @@ vec3 getSampleWeighted(vec3 dir) {
     return o1 * weights.x + o2 * weights.y + nDir * weights.z;
 }
 
+vec3 getSampleWeightedAlt(vec3 dir) {
+    return normalize(normalize(dir) + fRand3Normal());
+}
+
 vec3 getBackground(vec3 dir) {
     if (backgroundType == 0) {
-        return vec3(1.0);
+        return vec3(0.01);
     } else {
         return yignbu(acos(-normalize(dir).y) / PI).xyz;
     }
@@ -160,12 +176,30 @@ vec3 getMandelbulbNormal(in vec3 hitPos) {
  * complexity: Roughly how "long" it took for the path marcher to terminate
  * RETURN: True if an intersection was found
  */
-bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out float complexity) {
+bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out float complexity, out bool hitLight) {
+    bool hit = false;
+    float totalStep;
+    float totalStepMin = 1e38;
+
+    // Light intersection
+    if (raySphereIntersect(from, dir, LIGHT_POS, LIGHT_RADIUS, totalStep)) {
+        totalStepMin = totalStep;
+        hitPos = from + dir * totalStep;
+        hitNormal = normalize(hitPos - LIGHT_POS);
+        hit = true;
+        hitLight = true;
+    } else {
+        hitLight = false;
+    }
+
     vec3 marchTo;
     vec3 escapeZ;
-    float totalStep = 0.0;
+    float dummy;
     int itr;
-    if (hitSphere(vec3(0, 0, 0), 1.2, from, dir)) {
+    totalStep = 0.0;
+
+    // Mandelbulb intersection
+    if (raySphereIntersect(from, dir, vec3(0, 0, 0), 1.2, dummy) || dummy < 0.0) {
         for (int i = 0; i < MAX_RAY_MARCH_ITERATIONS; ++i) {
             itr = i;
             if (i >= rayMarchIterations) break;
@@ -174,39 +208,42 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
             if (nextStep < EPSILON) break;
             totalStep += nextStep;
         }
-        if (itr >= rayMarchIterations) {
-            return false;
-        } else {
+        if (itr < rayMarchIterations && totalStep < totalStepMin) {
+            totalStepMin = totalStep;
             hitPos = marchTo;
             hitNormal = getMandelbulbNormal(marchTo);
+            hitLight = false;
+            hit = true;
             complexity = (
                 float(itr) + 1.0 - log(log(length(escapeZ))) / log(MANDELBULB_POWER)
             ) / float(rayMarchIterations);
-            return true;
         }
     }
-    return false;
+    return hit;
 }
 
 vec3 getColorGI(vec3 from, vec3 dir) {
-    vec3 hit = vec3(0.0);
     vec3 hitNormal = vec3(0.0);
     float complexity;
+    bool hitLight;
 
     vec3 luminance = vec3(1.0);
 
     for (int i = 0; i < MAX_BOUNCES; ++i) {
         if (i >= bounces) break;
-        if (trace(from, dir, hit, hitNormal, complexity)) {
+        if (trace(from, dir, from, hitNormal, complexity, hitLight)) {
             if (useCosineBias == 0) {
                 dir = getSampleUnweighted(hitNormal);
                 luminance *= 2.0 * ALBEDO * dot(dir, hitNormal);
-            } else {
+            } else if (useCosineBias == 1) {
                 dir = getSampleWeighted(hitNormal);
+                luminance *= ALBEDO;
+            } else {
+                dir = getSampleWeightedAlt(hitNormal);
                 luminance *= ALBEDO;
             }
 
-            from = hit + hitNormal * EPSILON * 2.0;
+            from = from + hitNormal * EPSILON * 2.0;
         } else {
             return luminance * getBackground(dir);
         }
@@ -214,6 +251,51 @@ vec3 getColorGI(vec3 from, vec3 dir) {
 
     // Never escaped the fractal structure (never hit the skybox)
     return vec3(0.0);
+}
+
+vec3 getColorCaffeine(in vec3 from, in vec3 dir) {
+    vec3 accum = vec3(0.0);
+    vec3 mask = vec3(1.0);
+    vec3 pos = from;
+    vec3 ray = dir;
+
+    for (int i = 0; i < MAX_BOUNCES; ++i) {
+        if (i >= bounces) break;
+        vec3 hitPos;
+        vec3 hitNormal;
+        bool hitLight;
+        float dummyFloat;
+        vec3 dummyVec;
+        // Hit nothing (skybox)
+        if (!trace(pos, ray, hitPos, hitNormal, dummyFloat, hitLight)) {
+            accum += getBackground(dir) * mask;
+            break;
+        }
+        // Hit light source
+        if (hitLight) {
+            accum += LIGHT_COLOR * mask;
+            break;
+        }
+        // Hit fractal
+        mask *= FRACTAL_COLOR;
+
+        // Soft shadows
+        vec3 lightSamplePos = LIGHT_POS + fRand3Normal() * LIGHT_RADIUS;
+        vec3 lightSampleRay = normalize(lightSamplePos - hitPos);
+        vec3 oldPosRay = normalize(pos - hitPos);
+        if (trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight) && hitLight) {
+            vec3 halfVec = normalize(lightSampleRay + oldPosRay);
+            float d = clamp(dot(hitNormal, halfVec), 0.0, 1.0);
+            d *= pow(asin(LIGHT_RADIUS / distance(hitPos, LIGHT_POS)), 2.0);
+            accum += d * LIGHT_INTENSITY * LIGHT_COLOR * mask;
+        }
+
+        ray = normalize(mix(reflect(ray, hitNormal), getSampleWeightedAlt(hitNormal), ROUGHNESS));
+        // Ensure that the new position does not hit the object at the same point
+        pos = hitPos + ray * EPSILON;
+    }
+    
+    return accum;
 }
 
 #pragma glslify: getColorBlinnPhong = require('./color-functions/blinn-phong.glsl', trace=trace);
@@ -232,7 +314,9 @@ void main() {
 
     if (shadingType == 0) {
         gl_FragColor = vec4(sourceRgb + getColorBlinnPhong(eye, lookAt), 1.0);
-    } else {
+    } else if (shadingType == 1) {
         gl_FragColor = vec4(sourceRgb + getColorGI(eye, lookAt), 1.0);
+    } else { 
+        gl_FragColor = vec4(sourceRgb + getColorCaffeine(eye, lookAt), 1.0);
     }
 }

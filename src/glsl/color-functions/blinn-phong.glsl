@@ -14,17 +14,17 @@ const vec3 lightPosition = vec3(0.0, 3.0, 0.0);
 vec3 getColorBlinnPhong(vec3 from, vec3 dir) {
     vec3 hitPos;
     vec3 hitNormal;
-    vec4 rawColor;
     float marchComplexity;
+    bool hitLight;
 
-    bool didHit = trace(from, dir, hitPos, hitNormal, marchComplexity);
-    rawColor = blackbody(marchComplexity);
+    bool didHit = trace(from, dir, hitPos, hitNormal, marchComplexity, hitLight);
 
     // Early return if no hit
-    if (!didHit) {
+    if (!didHit || hitLight) {
         return vec3(1.0);
     }
 
+    vec4 rawColor = blackbody(marchComplexity);
     vec3 ambient = objAmbient * lightAmbient;
 
     vec3 light = normalize(lightPosition - hitPos);
