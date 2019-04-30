@@ -8,10 +8,10 @@ const viewDelta = 0.01;
 const RAND_SIZE = 1024;
 
 const featureToggles = {
-    antialias: 0,
+    antialias: 1,
     bounces: 3,
     zFunctionType: 0,
-    shadingType: 0,
+    shadingType: 2,
     zFunctionIterations: 10,
     rayMarchIterations: 100,
     backgroundType: 1,

@@ -20,7 +20,7 @@ const vec3 Y_EPSILON = vec3(0.0, EPSILON, 0.0);
 const vec3 Z_EPSILON = vec3(0.0, 0.0, EPSILON);
 const vec3 LIGHT_POS = vec3(8.0, 8.0, -8.0);
 const vec3 LIGHT_COLOR = vec3(1.0);
-const vec3 FRACTAL_COLOR = vec3(0.6);
+const vec3 FRACTAL_COLOR = vec3(0.9);
 
 uniform sampler2D source;
 uniform sampler2D tRand2Normal;
@@ -119,7 +119,7 @@ vec3 getSampleWeightedAlt(vec3 dir) {
 
 vec3 getBackground(vec3 dir) {
     if (backgroundType == 0) {
-        return vec3(0.01);
+        return vec3(0.1);
     } else {
         return yignbu(acos(-normalize(dir).y) / PI).xyz;
     }
@@ -268,7 +268,7 @@ vec3 getColorCaffeine(in vec3 from, in vec3 dir) {
         vec3 dummyVec;
         // Hit nothing (skybox)
         if (!trace(pos, ray, hitPos, hitNormal, dummyFloat, hitLight)) {
-            accum += getBackground(dir) * mask;
+            accum += getBackground(ray) * mask;
             break;
         }
         // Hit light source
