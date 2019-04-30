@@ -19,7 +19,6 @@ function toNumberAndScreenReset(value: String) {
 }
 
 const gui = new dat.GUI();
-gui.add(featureToggles, "zFunctionType", { Trig: 1, Polynomial: 0 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "shadingType", { BlinnPhong: 0, Global: 1 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "zFunctionIterations", 1, 16, 1).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "rayMarchIterations", 1, 128, 1).onChange(toNumberAndScreenReset);

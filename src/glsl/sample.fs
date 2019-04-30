@@ -32,7 +32,6 @@ uniform int shadingType;
 uniform int viewportHeight;
 uniform int viewportWidth;
 uniform int zFunctionIterations;
-uniform int zFunctionType;
 uniform float lightIntensity;
 uniform float lightRadius;
 uniform float lightTheta;
@@ -158,11 +157,7 @@ float sdMandelbulb(in vec3 p, out vec3 escapeZ) {
 
         dr = pow(r, MANDELBULB_POWER - 1.0) * MANDELBULB_POWER * dr + 1.0;
 
-        if (zFunctionType == 0) {
-            nextZPoly(p, zVec);
-        } else {
-            nextZTrig(p, MANDELBULB_POWER, zVec);
-        }
+        nextZTrig(p, MANDELBULB_POWER, zVec);
     }
     escapeZ = zVec;
     return 0.5 * log(r) * r / dr;
@@ -444,7 +439,7 @@ vec3 getColorGI(in vec3 from, in vec3 dir) {
             float lightCos = dot(hitNormal, lightSampleRay);
             if (
                 lightCos > 0.0
-                && !trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight)
+                && !trace(hitPos + hitNormal * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight)
                 && hitLight
             ) {
                 if (usePreethamModel) {
