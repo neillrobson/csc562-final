@@ -8,6 +8,8 @@ uniform float numPings;
 void main() {
     vec2 resolution = vec2(viewportWidth, viewportHeight);
     vec3 sourceRgb = texture2D(source, gl_FragCoord.xy / resolution).rgb / numPings;
+    // Gamma correction
+    sourceRgb = pow(sourceRgb, vec3(1.0 / 2.2));
 
     gl_FragColor = vec4(sourceRgb, 1.0);
 }
