@@ -8,15 +8,14 @@ const viewDelta = 0.01;
 const RAND_SIZE = 1024;
 
 const featureToggles = {
-    antialias: 1,
+    antialias: true,
     bounces: 3,
     zFunctionType: 0,
-    shadingType: 2,
+    shadingType: 1,
     zFunctionIterations: 10,
     rayMarchIterations: 100,
     backgroundType: 1,
-    useCosineBias: 0,
-    useDirectLighting: 0,
+    useDirectLighting: true,
     resolution: 512,
     screenFillType: 0
 };

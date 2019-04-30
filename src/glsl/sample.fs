@@ -29,16 +29,16 @@ uniform sampler2D tRand2Uniform;
 // Avoids sampling the same area between frames
 uniform vec2 rand;
 uniform vec3 eye;
-uniform int antialias;
 uniform int backgroundType;
 uniform int bounces;
 uniform int rayMarchIterations;
 uniform int shadingType;
-uniform int useCosineBias;
 uniform int viewportHeight;
 uniform int viewportWidth;
 uniform int zFunctionIterations;
 uniform int zFunctionType;
+uniform bool antialias;
+uniform bool useDirectLighting;
 uniform float randsize;
 uniform mat4 targetTransform;
 
@@ -103,7 +103,7 @@ vec3 getSampleUnweighted(vec3 dir) {
 
 // A cosine-weighted vec3 within the hemisphere centered on dir.
 // We are generating random points on a flat disc, then shooting them straight up onto a hemisphere.
-vec3 getSampleWeighted(vec3 dir) {
+vec3 getSampleWeightedAlt(vec3 dir) {
     vec3 nDir = normalize(dir);
     vec3 o1 = normalize(ortho(nDir));
     vec3 o2 = normalize(cross(nDir, o1));
@@ -113,7 +113,8 @@ vec3 getSampleWeighted(vec3 dir) {
     return o1 * weights.x + o2 * weights.y + nDir * weights.z;
 }
 
-vec3 getSampleWeightedAlt(vec3 dir) {
+// A cosine-weighted vec3 within the hemisphere centered on dir.
+vec3 getSampleWeighted(vec3 dir) {
     return normalize(normalize(dir) + fRand3Normal());
 }
 
@@ -222,38 +223,7 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
     return hit;
 }
 
-vec3 getColorGI(vec3 from, vec3 dir) {
-    vec3 hitNormal = vec3(0.0);
-    float complexity;
-    bool hitLight;
-
-    vec3 luminance = vec3(1.0);
-
-    for (int i = 0; i < MAX_BOUNCES; ++i) {
-        if (i >= bounces) break;
-        if (trace(from, dir, from, hitNormal, complexity, hitLight)) {
-            if (useCosineBias == 0) {
-                dir = getSampleUnweighted(hitNormal);
-                luminance *= 2.0 * ALBEDO * dot(dir, hitNormal);
-            } else if (useCosineBias == 1) {
-                dir = getSampleWeighted(hitNormal);
-                luminance *= ALBEDO;
-            } else {
-                dir = getSampleWeightedAlt(hitNormal);
-                luminance *= ALBEDO;
-            }
-
-            from = from + hitNormal * EPSILON * 2.0;
-        } else {
-            return luminance * getBackground(dir);
-        }
-    }
-
-    // Never escaped the fractal structure (never hit the skybox)
-    return vec3(0.0);
-}
-
-vec3 getColorCaffeine(in vec3 from, in vec3 dir) {
+vec3 getColorGI(in vec3 from, in vec3 dir) {
     vec3 accum = vec3(0.0);
     vec3 mask = vec3(1.0);
     vec3 pos = from;
@@ -273,24 +243,30 @@ vec3 getColorCaffeine(in vec3 from, in vec3 dir) {
         }
         // Hit light source
         if (hitLight) {
-            accum += LIGHT_COLOR * mask;
+            if (useDirectLighting) {
+                accum += LIGHT_COLOR * mask;
+            } else {
+                accum += getBackground(ray) * mask;
+            }
             break;
         }
         // Hit fractal
         mask *= FRACTAL_COLOR;
 
-        // Soft shadows
-        vec3 lightSamplePos = LIGHT_POS + fRand3Normal() * LIGHT_RADIUS;
-        vec3 lightSampleRay = normalize(lightSamplePos - hitPos);
-        vec3 oldPosRay = normalize(pos - hitPos);
-        if (trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight) && hitLight) {
-            vec3 halfVec = normalize(lightSampleRay + oldPosRay);
-            float d = clamp(dot(hitNormal, halfVec), 0.0, 1.0);
-            d *= pow(asin(LIGHT_RADIUS / distance(hitPos, LIGHT_POS)), 2.0);
-            accum += d * LIGHT_INTENSITY * LIGHT_COLOR * mask;
+        if (useDirectLighting) {
+            // Soft shadows
+            vec3 lightSamplePos = LIGHT_POS + fRand3Normal() * LIGHT_RADIUS;
+            vec3 lightSampleRay = normalize(lightSamplePos - hitPos);
+            vec3 oldPosRay = normalize(pos - hitPos);
+            if (trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight) && hitLight) {
+                vec3 halfVec = normalize(lightSampleRay + oldPosRay);
+                float d = clamp(dot(hitNormal, halfVec), 0.0, 1.0);
+                d *= pow(asin(LIGHT_RADIUS / distance(hitPos, LIGHT_POS)), 2.0);
+                accum += d * LIGHT_INTENSITY * LIGHT_COLOR * mask;
+            }
         }
 
-        ray = normalize(mix(reflect(ray, hitNormal), getSampleWeightedAlt(hitNormal), ROUGHNESS));
+        ray = normalize(mix(reflect(ray, hitNormal), getSampleWeighted(hitNormal), ROUGHNESS));
         // Ensure that the new position does not hit the object at the same point
         pos = hitPos + ray * EPSILON;
     }
@@ -304,7 +280,7 @@ void main() {
     vec3 sourceRgb = texture2D(source, gl_FragCoord.xy / resolution).rgb;
 
     vec2 jitter = vec2(0.0);
-    if (antialias == 1) {
+    if (antialias) {
         jitter = fRand2Uniform() - 0.5;
     }
 
@@ -316,7 +292,5 @@ void main() {
         gl_FragColor = vec4(sourceRgb + getColorBlinnPhong(eye, lookAt), 1.0);
     } else if (shadingType == 1) {
         gl_FragColor = vec4(sourceRgb + getColorGI(eye, lookAt), 1.0);
-    } else { 
-        gl_FragColor = vec4(sourceRgb + getColorCaffeine(eye, lookAt), 1.0);
     }
 }
