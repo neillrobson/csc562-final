@@ -28,6 +28,7 @@ const featureToggles = {
     usePreethamModel: false,
     turbidity: 2,
     SkyFactor: 1,
+    useGammaCorrection: true,
 };
 
 const cameraPosition = {

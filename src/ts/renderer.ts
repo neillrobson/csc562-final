@@ -141,6 +141,7 @@ class Renderer {
                 viewportHeight: this.regl.context('viewportHeight'),
                 source: this.reglProp('source'),
                 numPings: this.reglProp('numPings'),
+                useGammaCorrection: this.reglProp('useGammaCorrection'),
             },
             depth: { enable: false },
             primitive: 'triangle strip',
@@ -198,6 +199,7 @@ class Renderer {
         this.reglDisplay({
             source: this.pingPongBuffers[this.ping],
             numPings: this.numPings,
+            useGammaCorrection: featureToggles.useGammaCorrection,
         });
     }
 }
