@@ -25,6 +25,7 @@ uniform vec2 rand;
 uniform vec3 eye;
 uniform int backgroundType;
 uniform int rayMarchIterations;
+uniform int shadingType;
 uniform int useCosineBias;
 uniform int viewportHeight;
 uniform int viewportWidth;
@@ -32,6 +33,8 @@ uniform int zFunctionIterations;
 uniform int zFunctionType;
 uniform float randsize;
 uniform mat4 targetTransform;
+
+vec2 resolution = vec2(viewportWidth, viewportHeight);
 
 // Source for orthogonal vector calculator: http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
 vec3 ortho(in vec3 v) {
@@ -52,27 +55,26 @@ vec2 randState = vec2(0.0);
 
 // A random vec2 whose coordinates are distributed around zero according to a normal curve.
 vec2 fRand2Uniform() {
-    vec2 ret = texture2D(tRand2Uniform, gl_FragCoord.xy / float(viewportHeight) + rand.xy + randState).ba;
+    vec2 ret = texture2D(tRand2Uniform, gl_FragCoord.xy / resolution + rand.xy + randState).ba;
     randState += ret;
     return ret;
 }
 
 // A random vec2 that lies on the unit circle.
 vec2 fRand2Normal() {
-    vec2 ret = texture2D(tRand2Normal, gl_FragCoord.xy / float(viewportHeight) + rand.xy + randState).ba;
+    vec2 ret = texture2D(tRand2Normal, gl_FragCoord.xy / resolution + rand.xy + randState).ba;
     randState += ret;
     return ret;
 }
 
 // A random vec2 that lies on or within the unit circle.
 vec2 fRand2Disc() {
-    // return fRand2Normal() * (fRand2Uniform()).x
-    return vec2(0.0);
+    return fRand2Normal() * (fRand2Uniform()).x;
 }
 
 // A random vec3 that lies on the unit sphere.
 vec3 fRand3Normal() {
-    vec3 ret = texture2D(tRand3Normal, gl_FragCoord.xy / float(viewportHeight) + rand.xy + randState).rgb;
+    vec3 ret = texture2D(tRand3Normal, gl_FragCoord.xy / resolution + rand.xy + randState).rgb;
     randState += ret.xy;
     return ret;
 }
@@ -211,13 +213,18 @@ vec3 getColorGI(vec3 from, vec3 dir) {
     return vec3(0.0);
 }
 
+#pragma glslify: getColorBlinnPhong = require('./color-functions/blinn-phong.glsl', trace=trace);
+
 void main() {
-    vec2 resolution = vec2(viewportWidth, viewportHeight);
     vec3 sourceRgb = texture2D(source, gl_FragCoord.xy / resolution).rgb;
 
     // lookAtCoords is (0, 0) at the center of the screen
-    vec2 lookAtCoords = (2.0 * gl_FragCoord.xy - resolution) / float(viewportHeight);
+    vec2 lookAtCoords = (2.0 * gl_FragCoord.xy - resolution) / resolution;
     vec3 lookAt = (targetTransform * vec4(normalize(vec3(lookAtCoords, -1.0)), 1.0)).xyz;
 
-    gl_FragColor = vec4(sourceRgb + getColorGI(eye, lookAt), 1.0);
+    if (shadingType == 0) {
+        gl_FragColor = vec4(sourceRgb + getColorBlinnPhong(eye, lookAt), 1.0);
+    } else {
+        gl_FragColor = vec4(sourceRgb + getColorGI(eye, lookAt), 1.0);
+    }
 }
