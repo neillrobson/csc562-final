@@ -33,6 +33,9 @@ gui.add(featureToggles, "lightPhi", 0, 1).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "lightIntensity", 0, 16).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "lightRadius", 0, 10).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "fractalRoughness", 0, 1).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "turbidity", 0, 16).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "SkyFactor", 0, 2).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "usePreethamModel").onChange(renderer.resetSampler.bind(renderer));
 gui.addColor(featureToggles, "backgroundColor").onChange(renderer.resetSampler.bind(renderer));
 
 const flexCenter = document.createElement("div");

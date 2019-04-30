@@ -40,11 +40,16 @@ uniform float lightPhi;
 uniform float fractalRoughness;
 uniform bool antialias;
 uniform bool useDirectLighting;
+uniform bool usePreethamModel;
 uniform mat4 targetTransform;
+uniform float turbidity;
+uniform float SkyFactor;
 
-vec2 resolution = vec2(viewportWidth, viewportHeight);
 // Avoids sampling the same area within a frame
 vec2 randState = vec2(0.0);
+vec2 resolution = vec2(viewportWidth, viewportHeight);
+vec2 SunPos = vec2(lightTheta, lightPhi);
+float sunAngularDiameterCos = cos(lightRadius*PI/180.0);
 
 // Source for orthogonal vector calculator: http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
 vec3 ortho(in vec3 v) {
@@ -111,9 +116,6 @@ vec3 getConeSample(vec3 dir, float maxCos) {
     float oneminus = sqrt(1.0 - z * z);
     return cos(u) * oneminus * o1 + sin(u) * oneminus * o2 + z * nDir;
 }
-
-vec2 SunPos = vec2(lightTheta, lightPhi);
-float sunAngularDiameterCos = cos(lightRadius*PI/180.0);
 
 vec3 fromSpherical(vec2 p) {
 	return vec3(
@@ -222,15 +224,6 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
 
 // ###################################################################################
 
-// uniform float turbidity; // slider[1,2,16]
-// // Angular sun size - physical sun is 0.53 degrees
-// uniform float sunSize; // slider[0,1,10]
-// uniform float SkyFactor; // slider[0,1,100]
-// uniform vec2 SunPos; // slider[(0,0),(0,0.2),(1,1)]
-
-const float turbidity = 2.0;
-const float SkyFactor = 1.0;
-
 const float mieCoefficient = 0.005;
 const float mieDirectionalG = 0.80;
 
@@ -249,7 +242,7 @@ const float v = 4.0;
 // optical length at zenith for molecules
 const float rayleighZenithLength = 8.4E3;
 const float mieZenithLength = 1.25E3;
-const vec3 up = vec3(0.0, 0.0, 1.0);
+const vec3 up = vec3(0.0, 1.0, 0.0);
 
 const float sunIntensity = 1000.0;
 
@@ -312,10 +305,7 @@ vec3 sun(vec3 viewDir) {
 	sky *= mix(vec3(1.0),pow(somethingElse * Fex,vec3(0.5)),clamp(pow(1.0-dot(up, sunDirection),5.0),0.0,1.0));
 	// composition + solar disc
 	
-//	float sundisk = smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
-	float sundisk = 
-		sunAngularDiameterCos < cosViewSunAngle ? 1.0 : 0.0;
-	//	smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
+	float sundisk = sunAngularDiameterCos < cosViewSunAngle ? 1.0 : 0.0;
 	vec3 sun = (sunE * 19000.0 * Fex)*sundisk;
 	
 	return 0.01*sun;
@@ -366,14 +356,16 @@ vec3 sky(vec3 viewDir) {
 }
 
 vec3 sunsky(vec3 viewDir) {
+    if (sunAngularDiameterCos == 1.0) {
+        return vec3(1.0,0.0,0.0);	
+    }
+
     vec3 sunDirection = getSunDirection();
 	// Cos Angles
 	float cosViewSunAngle = dot(viewDir, sunDirection);
 	float cosSunUpAngle = dot(sunDirection, up);
 	float cosUpViewAngle = dot(up, viewDir);
-    if (sunAngularDiameterCos == 1.0) {
-        return vec3(1.0,0.0,0.0);	
-    }
+
 	float sunE = SunIntensity(cosSunUpAngle);  // Get sun intensity based on how high in the sky it is
 	// extinction (asorbtion + out scattering)
 	// rayleigh coeficients
@@ -408,7 +400,7 @@ vec3 sunsky(vec3 viewDir) {
 	float sundisk = smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
 	vec3 sun = (sunE * 19000.0 * Fex)*sundisk;
 	
-	return 0.01*(sun+sky);
+	return 0.01*(sun+SkyFactor*sky);
 }
 
 // ###################################################################################
@@ -428,23 +420,41 @@ vec3 getColorGI(in vec3 from, in vec3 dir) {
         bool hitLight;
         float dummyFloat;
         vec3 dummyVec;
+
         // Hit nothing (skybox)
         if (!trace(pos, ray, hitPos, hitNormal, dummyFloat, hitLight)) {
-            color *= getBackground(ray);
+            if (usePreethamModel) {
+                if (useDirectLighting) {
+                    color *= (i > 0 ? sky(ray) : sunsky(ray));
+                } else {
+                    color *= sunsky(ray);
+                }
+            } else {
+                color *= getBackground(ray);
+            }
             break;
         }
+
         // Hit fractal
         color *= FRACTAL_COLOR;
 
         if (useDirectLighting) {
-            vec3 lightDirection = getSunDirection();
             // Soft shadows
-            vec3 lightSampleRay = getConeSample(lightDirection, sunAngularDiameterCos);
-            vec3 oldPosRay = normalize(pos - hitPos);
-            if (!trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight) && hitLight) {
-                vec3 halfVec = normalize(lightSampleRay + oldPosRay);
-                float d = clamp(dot(hitNormal, halfVec), 0.0, 1.0);
-                direct += d * lightIntensity * LIGHT_COLOR * color;
+            vec3 lightSampleRay = getConeSample(getSunDirection(), sunAngularDiameterCos);
+            float lightCos = dot(hitNormal, lightSampleRay);
+            if (
+                lightCos > 0.0
+                && !trace(hitPos + lightSampleRay * EPSILON, lightSampleRay, dummyVec, dummyVec, dummyFloat, hitLight)
+                && hitLight
+            ) {
+                if (usePreethamModel) {
+                    direct += color * sun(lightSampleRay) * lightCos * 1E-5;
+                } else {
+                    vec3 oldPosRay = normalize(pos - hitPos);
+                    vec3 halfVec = normalize(lightSampleRay + oldPosRay);
+                    float d = clamp(dot(hitNormal, halfVec), 0.0, 1.0);
+                    direct += d * lightIntensity * LIGHT_COLOR * color;
+                }
             }
         }
 

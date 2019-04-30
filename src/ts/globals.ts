@@ -25,6 +25,9 @@ const featureToggles = {
     backgroundColor: [ 255, 128, 128 ],
     lightTheta: 0,
     lightPhi: 0.2,
+    usePreethamModel: false,
+    turbidity: 2,
+    SkyFactor: 1,
 };
 
 const cameraPosition = {
