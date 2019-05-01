@@ -19,25 +19,31 @@ function toNumberAndScreenReset(value: String) {
 }
 
 const gui = new dat.GUI();
+const generalFolder = gui.addFolder("General");
+generalFolder.add(featureToggles, "zFunctionIterations", 1, 16, 1).onChange(toNumberAndScreenReset);
+generalFolder.add(featureToggles, "rayMarchIterations", 1, 128, 1).onChange(toNumberAndScreenReset);
+generalFolder.add(featureToggles, "antialias").onChange(renderer.resetSampler.bind(renderer));
+generalFolder.add(featureToggles, "screenFillType", { Shrink: 0, Stretch: 1 }).onChange(toNumberAndScreenReset);
+generalFolder.add(featureToggles, "mandelbulbPower", 1, 20).onChange(toNumberAndScreenReset);
+generalFolder.add(featureToggles, "useGammaCorrection").onChange(renderer.resetSampler.bind(renderer));
+
 gui.add(featureToggles, "shadingType", { BlinnPhong: 0, Global: 1 }).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "zFunctionIterations", 1, 16, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "rayMarchIterations", 1, 128, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "useDirectLighting").onChange(renderer.resetSampler.bind(renderer));
-gui.add(featureToggles, "screenFillType", { Shrink: 0, Stretch: 1 }).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "antialias").onChange(renderer.resetSampler.bind(renderer));
-gui.add(featureToggles, "bounces", 1, 16, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "lightTheta", 0, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "lightPhi", 0, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "lightIntensity", 0, 16).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "lightRadius", 0, 10).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "fractalRoughness", 0, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "turbidity", 0, 16).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "SkyFactor", 0, 2).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "mandelbulbPower", 1, 20).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "usePreethamModel").onChange(renderer.resetSampler.bind(renderer));
-gui.add(featureToggles, "useGammaCorrection").onChange(renderer.resetSampler.bind(renderer));
-gui.addColor(featureToggles, "skyboxColorUp").onChange(renderer.resetSampler.bind(renderer));
-gui.addColor(featureToggles, "skyboxColorDown").onChange(renderer.resetSampler.bind(renderer));
+
+const globalIlluminationFolder = gui.addFolder("Global Illumination");
+globalIlluminationFolder.add(featureToggles, "useDirectLighting").onChange(renderer.resetSampler.bind(renderer));
+globalIlluminationFolder.add(featureToggles, "bounces", 1, 16, 1).onChange(toNumberAndScreenReset);
+globalIlluminationFolder.add(featureToggles, "lightTheta", 0, 1).onChange(toNumberAndScreenReset);
+globalIlluminationFolder.add(featureToggles, "lightPhi", 0, 1).onChange(toNumberAndScreenReset);
+globalIlluminationFolder.add(featureToggles, "lightIntensity", 0, 16).onChange(toNumberAndScreenReset);
+globalIlluminationFolder.add(featureToggles, "lightRadius", 0, 10).onChange(toNumberAndScreenReset);
+globalIlluminationFolder.add(featureToggles, "fractalRoughness", 0, 1).onChange(toNumberAndScreenReset);
+globalIlluminationFolder.addColor(featureToggles, "skyboxColorUp").onChange(renderer.resetSampler.bind(renderer));
+globalIlluminationFolder.addColor(featureToggles, "skyboxColorDown").onChange(renderer.resetSampler.bind(renderer));
+
+const preethamFolder = gui.addFolder("Preetham Illumination");
+preethamFolder.add(featureToggles, "turbidity", 0, 16).onChange(toNumberAndScreenReset);
+preethamFolder.add(featureToggles, "SkyFactor", 0, 2).onChange(toNumberAndScreenReset);
+preethamFolder.add(featureToggles, "usePreethamModel").onChange(renderer.resetSampler.bind(renderer));
 
 const flexCenter = document.createElement("div");
 flexCenter.style.width = "100vw";
