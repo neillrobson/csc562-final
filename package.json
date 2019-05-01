@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "webpack-dev-server --debug --output-pathinfo --config ./webpack.config.js --mode development",
-    "build": "webpack --config ./webpack.config.js --mode development"
+    "build": "webpack --config ./webpack.config.js --mode production"
   },
   "author": "Neill Robson",
   "license": "MIT",
