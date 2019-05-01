@@ -34,9 +34,11 @@ gui.add(featureToggles, "lightRadius", 0, 10).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "fractalRoughness", 0, 1).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "turbidity", 0, 16).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "SkyFactor", 0, 2).onChange(toNumberAndScreenReset);
+gui.add(featureToggles, "mandelbulbPower", 1, 20).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "usePreethamModel").onChange(renderer.resetSampler.bind(renderer));
 gui.add(featureToggles, "useGammaCorrection").onChange(renderer.resetSampler.bind(renderer));
-gui.addColor(featureToggles, "backgroundColor").onChange(renderer.resetSampler.bind(renderer));
+gui.addColor(featureToggles, "skyboxColorUp").onChange(renderer.resetSampler.bind(renderer));
+gui.addColor(featureToggles, "skyboxColorDown").onChange(renderer.resetSampler.bind(renderer));
 
 const flexCenter = document.createElement("div");
 flexCenter.style.width = "100vw";

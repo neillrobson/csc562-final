@@ -2,7 +2,6 @@ precision highp float;
 
 #pragma glslify: yignbu = require('glsl-colormap/yignbu')
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
-#pragma glslify: nextZPoly = require('./mandel-sequencers/poly.glsl');
 
 const float PI = 3.141592653589793238462643383279502884197169;
 const int MAX_BOUNCES = 16;
@@ -10,7 +9,6 @@ const int MAX_Z_FUNCTION_ITERATIONS = 16;
 const int MAX_RAY_MARCH_ITERATIONS = 128;
 const float EPSILON = 0.001;
 const float BAILOUT_LENGTH = 3.0;
-const float MANDELBULB_POWER = 8.0;
 const vec3 X_EPSILON = vec3(EPSILON, 0.0, 0.0);
 const vec3 Y_EPSILON = vec3(0.0, EPSILON, 0.0);
 const vec3 Z_EPSILON = vec3(0.0, 0.0, EPSILON);
@@ -24,7 +22,8 @@ uniform sampler2D tRand2Uniform;
 // Avoids sampling the same area between frames
 uniform vec2 rand;
 uniform vec3 eye;
-uniform vec3 backgroundColor;
+uniform vec3 skyboxColorUp;
+uniform vec3 skyboxColorDown;
 uniform int backgroundType;
 uniform int bounces;
 uniform int rayMarchIterations;
@@ -43,6 +42,7 @@ uniform bool usePreethamModel;
 uniform mat4 targetTransform;
 uniform float turbidity;
 uniform float SkyFactor;
+uniform float mandelbulbPower;
 
 // Avoids sampling the same area within a frame
 vec2 randState = vec2(0.0);
@@ -132,7 +132,7 @@ vec3 getBackground(vec3 dir) {
     if (dot(getSunDirection(), dir) >= sunAngularDiameterCos) {
         return LIGHT_COLOR;
     } else if (backgroundType == 0) {
-        return backgroundColor;
+        return mix(skyboxColorDown, skyboxColorUp, acos(-normalize(dir).y) / PI);
     } else {
         return yignbu(acos(-normalize(dir).y) / PI).xyz;
     }
@@ -155,9 +155,9 @@ float sdMandelbulb(in vec3 p, out vec3 escapeZ) {
         r = length(zVec);
         if (r > BAILOUT_LENGTH) break;
 
-        dr = pow(r, MANDELBULB_POWER - 1.0) * MANDELBULB_POWER * dr + 1.0;
+        dr = pow(r, mandelbulbPower - 1.0) * mandelbulbPower * dr + 1.0;
 
-        nextZTrig(p, MANDELBULB_POWER, zVec);
+        nextZTrig(p, mandelbulbPower, zVec);
     }
     escapeZ = zVec;
     return 0.5 * log(r) * r / dr;
@@ -210,7 +210,7 @@ bool trace(in vec3 from, in vec3 dir, out vec3 hitPos, out vec3 hitNormal, out f
             hitLight = false;
             hit = true;
             complexity = (
-                float(itr) + 1.0 - log(log(length(escapeZ))) / log(MANDELBULB_POWER)
+                float(itr) + 1.0 - log(log(length(escapeZ))) / log(mandelbulbPower)
             ) / float(rayMarchIterations);
         }
     }

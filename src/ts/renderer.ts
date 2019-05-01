@@ -115,9 +115,11 @@ class Renderer {
                 lightTheta: this.reglProp('lightTheta'),
                 lightPhi: this.reglProp('lightPhi'),
                 lightIntensity: this.reglProp('lightIntensity'),
-                backgroundColor: this.reglProp('backgroundColor'),
+                skyboxColorUp: this.reglProp('skyboxColorUp'),
+                skyboxColorDown: this.reglProp('skyboxColorDown'),
                 turbidity: this.reglProp('turbidity'),
                 SkyFactor: this.reglProp('SkyFactor'),
+                mandelbulbPower: this.reglProp('mandelbulbPower'),
             },
             framebuffer: this.reglProp('destination'),
             depth: { enable: false },
@@ -186,7 +188,9 @@ class Renderer {
             lightPhi: featureToggles.lightPhi,
             lightRadius: featureToggles.lightRadius,
             fractalRoughness: featureToggles.fractalRoughness,
-            backgroundColor: featureToggles.backgroundColor.map(x => x / 255),
+            mandelbulbPower: featureToggles.mandelbulbPower,
+            skyboxColorUp: featureToggles.skyboxColorUp.map(x => x / 255),
+            skyboxColorDown: featureToggles.skyboxColorDown.map(x => x / 255),
         });
 
         this.ping = 1 - this.ping;

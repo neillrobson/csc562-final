@@ -21,13 +21,15 @@ const featureToggles = {
     lightIntensity: 4.1,
     lightAngle: 0,
     fractalRoughness: 0.5,
-    backgroundColor: [ 255, 128, 128 ],
+    skyboxColorUp: [ 255, 128, 128 ],
+    skyboxColorDown: [ 128, 64, 255 ],
     lightTheta: 0.7,
     lightPhi: 0.2,
     usePreethamModel: true,
     turbidity: 2,
     SkyFactor: 1,
     useGammaCorrection: true,
+    mandelbulbPower: 8,
 };
 
 const cameraPosition = {
