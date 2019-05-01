@@ -95,7 +95,6 @@ class Renderer {
             uniforms: {
                 viewportWidth: this.regl.context('viewportWidth'),
                 viewportHeight: this.regl.context('viewportHeight'),
-                backgroundType: this.reglProp("backgroundType"),
                 eye: this.reglProp("eye"),
                 rayMarchIterations: this.reglProp("rayMarchIterations"),
                 shadingType: this.reglProp("shadingType"),
@@ -168,7 +167,6 @@ class Renderer {
         let targetTransform = mat4.targetTo(mat4.create(), vec3.create(), lookAt, normUp);
 
         this.reglSample({
-            backgroundType: featureToggles.backgroundType,
             eye: cameraPosition.eye,
             rayMarchIterations: featureToggles.rayMarchIterations,
             shadingType: featureToggles.shadingType,
@@ -203,6 +201,14 @@ class Renderer {
             numPings: this.numPings,
             useGammaCorrection: featureToggles.useGammaCorrection,
         });
+    }
+
+    resize(resolution: number) {
+        this.canvas.width = this.canvas.height = resolution;
+        this.pingPongBuffers.forEach(buffer => {
+            buffer.resize(resolution);
+        });
+        this.resetSampler();
     }
 }
 

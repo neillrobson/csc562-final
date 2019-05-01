@@ -13,7 +13,6 @@ const featureToggles = {
     shadingType: 1,
     zFunctionIterations: 10,
     rayMarchIterations: 100,
-    backgroundType: 1,
     useDirectLighting: true,
     resolution: 512,
     screenFillType: 0,

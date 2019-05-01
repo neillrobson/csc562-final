@@ -1,6 +1,5 @@
 precision highp float;
 
-#pragma glslify: yignbu = require('glsl-colormap/yignbu')
 #pragma glslify: nextZTrig = require('./mandel-sequencers/trig.glsl');
 
 const float PI = 3.141592653589793238462643383279502884197169;
@@ -24,7 +23,6 @@ uniform vec2 rand;
 uniform vec3 eye;
 uniform vec3 skyboxColorUp;
 uniform vec3 skyboxColorDown;
-uniform int backgroundType;
 uniform int bounces;
 uniform int rayMarchIterations;
 uniform int shadingType;
@@ -131,10 +129,8 @@ vec3 getSunDirection() {
 vec3 getBackground(vec3 dir) {
     if (dot(getSunDirection(), dir) >= sunAngularDiameterCos) {
         return LIGHT_COLOR;
-    } else if (backgroundType == 0) {
-        return mix(skyboxColorDown, skyboxColorUp, acos(-normalize(dir).y) / PI);
     } else {
-        return yignbu(acos(-normalize(dir).y) / PI).xyz;
+        return mix(skyboxColorDown, skyboxColorUp, acos(-normalize(dir).y) / PI);
     }
 }
 

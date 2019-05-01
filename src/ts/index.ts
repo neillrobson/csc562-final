@@ -22,7 +22,6 @@ const gui = new dat.GUI();
 gui.add(featureToggles, "shadingType", { BlinnPhong: 0, Global: 1 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "zFunctionIterations", 1, 16, 1).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "rayMarchIterations", 1, 128, 1).onChange(toNumberAndScreenReset);
-gui.add(featureToggles, "backgroundType", { White: 0, Colored: 1 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "useDirectLighting").onChange(renderer.resetSampler.bind(renderer));
 gui.add(featureToggles, "screenFillType", { Shrink: 0, Stretch: 1 }).onChange(toNumberAndScreenReset);
 gui.add(featureToggles, "antialias").onChange(renderer.resetSampler.bind(renderer));
